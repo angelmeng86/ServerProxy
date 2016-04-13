@@ -297,7 +297,15 @@ public class SocksServer {
             
         }
         else {
+            key.cancel();
             Sock5Message msg = (Sock5Message)key.attachment();
+            if(msg.sockChannel != null) {
+                try {
+                    msg.sockChannel.close();
+                } catch (IOException e1) {
+                    e1.printStackTrace();
+                }
+            }
         }
     }
     
