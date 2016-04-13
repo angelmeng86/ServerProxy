@@ -1,7 +1,5 @@
 package com.mapple;
 
-import socks.Socks5Message;
-
 import java.io.DataInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -82,12 +80,13 @@ public class SocksServer {
             return hostName;
         }
 	    
-	    public boolean handle(SelectionKey key) {
+	    public boolean handle(SelectionKey key) throws IOException {
 	        SocketChannel channel = (SocketChannel)key.channel();
 	        channel.read(buffer);
             if(buffer.hasRemaining()) {
                return true; 
             }
+            logdebug("Handle socks5 " + state);
 	        switch(state) {
 	            case STATE_NONE:
 	            {
@@ -99,9 +98,9 @@ public class SocksServer {
 //	              +----+----------+----------+
 //	           Will be ignored directly.
                   int version = buffer.get(0);
-                  inform("socks version " + version);
+                  loginfo("socks version " + version);
                   if (version != 5) {
-                      inform("Unknow protocol version.");
+                	  loginfo("Unknow protocol version.");
                       return false;
                   }
                   int nMethods = buffer.get(1);
@@ -144,11 +143,11 @@ public class SocksServer {
 //	                      the number of octets of name that follow,
 //	                      there is no terminating NUL octet.
                   if (buffer.get(0) != 5) {
-                      inform("Unknow protocol version.");
+                	  loginfo("Unknow protocol version.");
                       return false;
                   }
 	                if (buffer.get(1) != 1) { 
-	                    inform("Command not supported. " + buffer.get(1));
+	                	loginfo("Command not supported. " + buffer.get(1));
 	                    return false;
 	                }
 	                if(buffer.get(3) == 1) {
@@ -160,7 +159,7 @@ public class SocksServer {
                         state = STATE_RECV_DOMAIN;
                     }
 	                else {
-	                    inform("Address type not supported. " + buffer.get(3));
+	                	loginfo("Address type not supported. " + buffer.get(3));
 	                    return false;
 	                }
 	            }
@@ -202,9 +201,9 @@ public class SocksServer {
 	        return true;
 	    }
 	    
-	    private void connectServer() {
+	    private void connectServer() throws IOException {
 	        state = STATE_CONNECTING;
-	        
+	        logdebug("connectServer " + host + ":" + port);
 	        SocketChannel remoteChannel = SocketChannel.open();
 	        remoteChannel.configureBlocking(false);
 	        remoteChannel.register(selector, SelectionKey.OP_CONNECT, this);
@@ -212,8 +211,13 @@ public class SocksServer {
 	    }
 	}
 	
-	static void inform(String s){
-	      System.out.print(new Date() + ": ");
+	static void loginfo(String s){
+	      System.out.print("INFO " + new Date() + ": ");
+	      System.out.println(s);
+	}
+	
+	static void logdebug(String s){
+	      System.out.print("DEBUG " + new Date() + ": ");
 	      System.out.println(s);
 	}
 	
@@ -222,8 +226,7 @@ public class SocksServer {
 	    int bind = 1080;
         SocksServer s = new SocksServer();
         System.out.println("SocksServer Listening " + bind + " ...");
-        s.start("0.0.0.0", bind);
-        s.join();
+        s.syncStart("0.0.0.0", bind);
         System.out.println("Stopped.");
 	    /*
 		if (args.length != 4) {
@@ -287,18 +290,26 @@ public class SocksServer {
         clientChannel.configureBlocking(false);
         clientChannel.register(selector, SelectionKey.OP_READ, new Sock5Message());
         Socket sock = clientChannel.socket();
-        inform("Accept client " + sock.getInetAddress().getHostName() + ":" + sock.getPort());
+        loginfo("Accept client " + sock.getInetAddress().getHostName() + ":" + sock.getPort());
     }
     
     private void channelConnect(SelectionKey key) throws IOException {
         SocketChannel channel = (SocketChannel)key.channel();
+        Sock5Message msg = (Sock5Message)key.attachment();
+
         channel.finishConnect();
         if(channel.isConnected()) {
-            
+        	byte[] reply = {5, 0, 0, 1 ,0, 0, 0, 0, 1, 1};
+        	msg.sockChannel.write(ByteBuffer.wrap(reply));
+        	
+        	loginfo("Connected " + msg.host + ":" + msg.port);
+        	msg.sockChannel.register(selector, SelectionKey.OP_READ, channel);
+        	channel.register(selector, SelectionKey.OP_READ, msg.sockChannel);
+        	msg.sockChannel = null;
         }
         else {
             key.cancel();
-            Sock5Message msg = (Sock5Message)key.attachment();
+            loginfo("Connect failure " + msg.host + ":" + msg.port);
             if(msg.sockChannel != null) {
                 try {
                     msg.sockChannel.close();
@@ -314,14 +325,23 @@ public class SocksServer {
         Object obj = key.attachment();
         
         if(obj instanceof Sock5Message) {
-           if(!((Sock5Message)obj).handle(key)) {
-               key.cancel();
-               try {
-                   originCh.close();
-               } catch (IOException e1) {
-                   e1.printStackTrace();
-               }
-           }
+			try {
+				if (!((Sock5Message) obj).handle(key)) {
+					key.cancel();
+					try {
+						originCh.close();
+					} catch (IOException e1) {
+						e1.printStackTrace();
+					}
+				}
+			} catch (IOException e) {
+				key.cancel();
+				try {
+					originCh.close();
+				} catch (IOException e1) {
+					e1.printStackTrace();
+				}
+			}
            return;
         }
         
@@ -330,6 +350,7 @@ public class SocksServer {
             try {
                 readBuffer.clear();
                 int read = originCh.read(readBuffer);
+                loginfo("read " + read);
                 if (read == 0) {
 
                 }
@@ -446,7 +467,7 @@ public class SocksServer {
         public void run() { 
             try {
                 Socket sock = localChannel.socket();
-                inform("Accept client " + sock.getInetAddress().getHostName() + ":" + sock.getPort());
+                loginfo("Accept client " + sock.getInetAddress().getHostName() + ":" + sock.getPort());
                 DataInputStream localIn = new DataInputStream(sock.getInputStream());
                 OutputStream localOut = sock.getOutputStream();
             
@@ -460,7 +481,7 @@ public class SocksServer {
                 int version = localIn.read();
 //                inform("socks version " + version);
                 if (version != 5) {
-                    inform("Unknow protocol version.");
+                	loginfo("Unknow protocol version.");
                     sock.close();
                     return;
                 }
@@ -486,7 +507,7 @@ public class SocksServer {
                 byte[] req = new byte[4];
                 localIn.readFully(req); // load VER, CMD, RSV
                 if (req[1] != 1) { 
-                    inform("Command not supported. " + req[1]);
+                	loginfo("Command not supported. " + req[1]);
                     /*
                     byte[] reply = {5, 7, 0, 1 ,0, 0, 0, 0, 1, 1};
                     localOut.write(reply); // Command not supported
@@ -519,7 +540,7 @@ public class SocksServer {
                     }
                     */
                 } else {
-                    inform("Address type not supported.");
+                	loginfo("Address type not supported.");
                     /*
                     byte[] reply = {5, 8, 0, 1 ,0, 0, 0, 0, 1, 1};
                     localOut.write(reply); // Address type not supported
@@ -555,7 +576,7 @@ public class SocksServer {
                     remoteChannel = SocketChannel.open(new InetSocketAddress(host,  
                             port));
                 } catch (Exception e) {
-                    inform("Connect failure " + host + ":" + port);
+                	loginfo("Connect failure " + host + ":" + port);
                     byte[] reply = {5, 1, 0, 1 ,0, 0, 0, 0, 1, 1};
                     localOut.write(reply); // general SOCKS server failure
                     sock.close();
@@ -565,7 +586,7 @@ public class SocksServer {
                 byte[] reply = {5, 0, 0, 1 ,0, 0, 0, 0, 1, 1};
                 localOut.write(reply);
                 String info = "Client " + sock.getInetAddress().getHostName() + ":" + sock.getPort() + " Connected " + host + ":" + port;
-                inform("Client " + sock.getInetAddress().getHostName() + ":" + sock.getPort() + " Connected " + host + ":" + port);
+                loginfo("Client " + sock.getInetAddress().getHostName() + ":" + sock.getPort() + " Connected " + host + ":" + port);
                 
                 Router router = new Router(localChannel, remoteChannel, info);
                 Thread routerThread = new Thread(router);
@@ -607,7 +628,7 @@ public class SocksServer {
 							    continue;
 							}
 							else if (read == -1) {
-							    inform(name + " close." + " send[" + sendLen + "] recv[" + recvLen + "]");
+								loginfo(name + " close." + " send[" + sendLen + "] recv[" + recvLen + "]");
 								recvCh.close();
 								if (recvCh == localCh) 
 								    remoteCh.close();
@@ -641,7 +662,7 @@ public class SocksServer {
 		}
 		
 		private void timeOut() {
-		    inform(name + " selector timeout.");
+			loginfo(name + " selector timeout.");
 		    try {
                 selector.close();
                 if (localCh.isConnected()) localCh.close();
