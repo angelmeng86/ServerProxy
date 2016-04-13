@@ -72,14 +72,14 @@ public class IdentAuthenticator extends ServerAuthenticatorNone{
      int ind = getRangeIndex(s.getInetAddress());
      String user = null;
 
-     //System.out.println("getRangeReturned:"+ind);
+//     System.out.println("lwz getRangeReturned:"+ind);
 
      if(ind < 0) return null; //Host is not on the list.
 
      ServerAuthenticatorNone auth = (ServerAuthenticatorNone)
                                     super.startSession(s);
 
-     //System.out.println("super.startSession() returned:"+auth);
+//     System.out.println("lwz super.startSession() returned:"+auth);
      if(auth == null) return null;
 
      //do the authentication 

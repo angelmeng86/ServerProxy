@@ -1,6 +1,7 @@
 package socks;
 import socks.server.ServerAuthenticator;
 import java.net.*;
+import java.util.Date;
 import java.io.*;
 
 /**
@@ -197,12 +198,13 @@ public class ProxyServer implements Runnable{
          try{
            startSession();
          }catch(IOException ioe){
+           log("lwz Start exception:"+ioe);
            handleException(ioe);
            //ioe.printStackTrace();
          }finally{
            abort();
            if(auth!=null) auth.endSession();
-           log("Main thread(client->remote)stopped.");
+           log("Main thread(client->remote)stopped." + " " + this);
          }
         break;
         case ACCEPT_MODE:
@@ -213,7 +215,7 @@ public class ProxyServer implements Runnable{
                                       //been accepted.
             pipe(remote_in,out);
           }catch(IOException ioe){
-            //log("Accept exception:"+ioe);
+            log("lwz Accept exception:"+ioe);
             handleException(ioe);
           }finally{
             abort();
@@ -226,7 +228,7 @@ public class ProxyServer implements Runnable{
          }catch(IOException ioe){
          }finally{
             abort();
-            log("Support thread(remote->client) stopped");
+            log("Support thread(remote->client) stopped" + " " + this);
          }
         break;
         case ABORT_MODE:
@@ -328,7 +330,7 @@ public class ProxyServer implements Runnable{
             } else {
                 s = new SocksSocket(proxy, msg.ip, msg.port);
             }
-            log("Connected to " + s.getInetAddress() + ":" + s.getPort());
+            log("Connected to " + s.getInetAddress() + ":" + s.getPort() + " " + this);
 
             iSock5Cmd = CProxy.SOCKS_SUCCESS; iSock4Msg = Socks4Message.REPLY_OK;
             sIp = s.getInetAddress(); iPort = s.getPort();
@@ -556,11 +558,14 @@ public class ProxyServer implements Runnable{
          if(ss!=null) ss.close();
          if(pipe_thread1 != null) pipe_thread1.interrupt();
          if(pipe_thread2 != null) pipe_thread2.interrupt();
-      }catch(IOException ioe){}
+      }catch(IOException ioe){
+          log("lwz abort " + ioe );
+      }
    }
 
    static final void log(String s){
      if(log != null){
+       log.print(new Date() + ": ");
        log.println(s);
        log.flush();
      }
@@ -576,23 +581,32 @@ public class ProxyServer implements Runnable{
    private void pipe(InputStream in,OutputStream out) throws IOException{
       lastReadTime = System.currentTimeMillis();
       byte[] buf = new byte[BUF_SIZE];
+      int totalLen = 0;
       int len = 0;
       while(len >= 0){
          try{
            if(len!=0){
+               totalLen += len;
              out.write(buf,0,len);
              out.flush();
            }
            len= in.read(buf);
+           
            lastReadTime = System.currentTimeMillis();
          }catch(InterruptedIOException iioe){
            if(iddleTimeout == 0) return;//Other thread interrupted us.
            long timeSinceRead = System.currentTimeMillis() - lastReadTime;
-           if(timeSinceRead >= iddleTimeout - 1000) //-1s for adjustment.
+           if(timeSinceRead >= iddleTimeout - 1000) {//-1s for adjustment.
               return;
+           }
            len = 0;
-
          }
+      }
+      if(in == this.in) {
+          log("lwz MainThread totalRead " + totalLen);
+      }
+      else {
+          log("lwz SuportThread totalRead " + totalLen);
       }
    }
    static final String command_names[] = {"CONNECT","BIND","UDP_ASSOCIATE"};

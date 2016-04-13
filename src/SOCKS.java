@@ -112,7 +112,7 @@ public class SOCKS{
       ProxyServer.setLog(log);
       inform("JSocks Proxy Server started. Listening on port: "+port);
       
-      server.start(port,10,localIP);
+      server.start(port,500,localIP);
    }
 
    static Properties loadProperties(String file_name){

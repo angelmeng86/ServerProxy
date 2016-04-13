@@ -115,6 +115,24 @@ class Socks4Message extends ProxyMessage{
              b = in.read();
           }
           user = new String(userBytes,0,i);
+          
+          //lwz add 增加socks4a协议解析 00 00 00 01
+          if(addr[0] == 0x00 && addr[1] == 0x00 && addr[2] == 0x00 && addr[3] != 0x00) {
+              b = in.read();
+              byte[] domainBytes = new byte[256];
+              for(i = 0;i<userBytes.length && b>0;++i){
+                  domainBytes[i] = (byte) b;
+                 b = in.read();
+              }
+              String domainName = new String(domainBytes,0,i);
+                try {
+                    ip = InetAddress.getByName(domainName);
+                    host = ip.getHostName();
+                } catch (UnknownHostException e) {
+                    ip = null;
+                }
+          }
+          //lwz end
        }
    }
    public void write(OutputStream out) throws IOException{
