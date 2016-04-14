@@ -20,13 +20,10 @@ import java.util.Iterator;
 import java.util.Set;
 
 public class SocksServer {
-	private Thread serverThread;
 	private ServerSocket localSock;
 	private boolean running = false;
 	
 	static int iddleTimeout = 180000; //3 minutes
-	
-//	private ConcurrentHashMap<SocketChannel, SocketChannel> routeList = new ConcurrentHashMap<SocketChannel, SocketChannel>();
     
 	private Selector selector;  
 	private ByteBuffer readBuffer = ByteBuffer.allocate(2048);
@@ -251,8 +248,8 @@ public class SocksServer {
 	}
 	
 	static void logdebug(String s){
-	      System.out.print("DEBUG " + formatter.format(new Date()) + ": ");
-	      System.out.println(s);
+//	      System.out.print("DEBUG " + formatter.format(new Date()) + ": ");
+//	      System.out.println(s);
 	}
 	
 	public static void main(String[] args){
@@ -383,7 +380,7 @@ public class SocksServer {
             try {
                 readBuffer.clear();
                 int read = originCh.read(readBuffer);
-                loginfo(originCh + " read " + read);
+//                loginfo(originCh + " read " + read);
                 if (read == 0) {
 
                 }
@@ -431,12 +428,6 @@ public class SocksServer {
 		serverThread.start();
 		return true;
 	}*/
-    
-    public void join() {
-        try {
-            serverThread.join();
-        } catch (InterruptedException e) { }
-    }
 	
 	public void stop() {
 		if (running) return;
