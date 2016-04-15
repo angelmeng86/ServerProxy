@@ -1,14 +1,14 @@
 package com.mapple;
 
+import com.mapple.SocksServer.Sock5Message;
+
 import java.io.IOException;
-import java.lang.Thread;
-import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
-import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.StandardSocketOptions;
 import java.net.UnknownHostException;
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
@@ -18,15 +18,14 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.Set;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 public class SocksServer {
-	private ServerSocket localSock;
-	private boolean running = false;
-	
 	static int iddleTimeout = 180000; //3 minutes
     
 	private Selector selector;  
-	private ByteBuffer readBuffer = ByteBuffer.allocate(2048);
+	private ByteBuffer readBuffer = ByteBuffer.allocate(8096);
+	private ConcurrentLinkedQueue<Sock5Message> queue = new ConcurrentLinkedQueue<Sock5Message>();
 	
 	class Sock5Message {
 	    
@@ -36,6 +35,7 @@ public class SocksServer {
 	    public static final int STATE_RECV_IP          =3;
 	    public static final int STATE_RECV_DOMAIN      =4;
 	    public static final int STATE_CONNECTING       =5;
+	    public static final int STATE_PARSE_ERROR      =6;
 	    
 	    /** Host as an IP address */
 	    public InetAddress ip=null;
@@ -53,6 +53,7 @@ public class SocksServer {
 	    public int state = STATE_NONE;
 	    
 	    public SocketChannel sockChannel = null;
+	    public SocketChannel remoteChannel = null;
 	    
 	    private ByteBuffer buffer = ByteBuffer.allocate(256);
 	    
@@ -93,7 +94,6 @@ public class SocksServer {
                 }
                 len = channel.read(buffer);
             } while(len > 0);
-//            logdebug(" Handle Zero return");
             return true;
         }
 	    
@@ -114,7 +114,6 @@ public class SocksServer {
 //	              +----+----------+----------+
 //	           Will be ignored directly.
                   int version = buffer.get(0);
-                  loginfo("socks version " + version);
                   if (version != 5) {
                 	  loginfo("Unknow protocol version.");
                       return false;
@@ -170,6 +169,8 @@ public class SocksServer {
                   }
 	                if (buffer.get(1) != 1) { 
 	                	loginfo("Command not supported. " + buffer.get(1));
+	                	byte[] reply = {5, 7, 0, 1 ,0, 0, 0, 0, 1, 1};
+	                	channel.write(ByteBuffer.wrap(reply)); // Command not supported
 	                    return false;
 	                }
 	                if(buffer.get(3) == 1) {
@@ -182,6 +183,8 @@ public class SocksServer {
                     }
 	                else {
 	                	loginfo("Address type not supported. " + buffer.get(3));
+	                	byte[] reply = {5, 8, 0, 1 ,0, 0, 0, 0, 1, 1};
+	                	channel.write(ByteBuffer.wrap(reply)); // Address type not supported
 	                    return false;
 	                }
 	            }
@@ -192,10 +195,6 @@ public class SocksServer {
                     buffer.position(4);
                     buffer.get(addr);
                     host = bytes2IPV4(addr, 0);
-                    /*
-                    InetAddress ip = bytes2IP(addr);
-                    host = ip.getHostName();
-                    */
                     
                     int ch1 = (buffer.get() & 0xFF);
                     int ch2 = (buffer.get() & 0xFF);
@@ -203,7 +202,7 @@ public class SocksServer {
                     
                     sockChannel = channel;
                     key.cancel();
-                    connectServer();
+                    connectServer1();
                 }
                     break;
 	            case STATE_RECV_DOMAIN:
@@ -219,25 +218,59 @@ public class SocksServer {
                     
                     sockChannel = channel;
                     key.cancel();
-                    connectServer();
+                    connectServer1();
                 }
                     break;
 	        }
 	        return true;
 	    }
 	    
+	    private void connectServer1() throws IOException {
+//                logdebug("ConnectServer " + host + ":" + port);
+                
+                SocketChannel remoteChannel = SocketChannel.open();
+                remoteChannel.configureBlocking(false);
+                
+                remoteChannel.setOption(StandardSocketOptions.SO_KEEPALIVE, true);
+                remoteChannel.setOption(StandardSocketOptions.SO_REUSEADDR, true);
+                
+                remoteChannel.connect(new InetSocketAddress(host, port));
+                remoteChannel.register(selector, SelectionKey.OP_CONNECT, this);
+       }
+	    
 	    private void connectServer() throws IOException {
-	        state = STATE_CONNECTING;
-	        logdebug("connectServer " + host + ":" + port);
-	        SocketChannel remoteChannel = SocketChannel.open();
-	        remoteChannel.configureBlocking(false);
 	        
-/*	        remoteChannel.setOption(StandardSocketOptions.TCP_NODELAY, true);
-	        remoteChannel.setOption(StandardSocketOptions.SO_KEEPALIVE, true);*/
-	        remoteChannel.setOption(StandardSocketOptions.SO_KEEPALIVE, true);
-	        remoteChannel.setOption(StandardSocketOptions.SO_REUSEADDR, true);
-	        remoteChannel.connect(new InetSocketAddress(host, port));
-	        remoteChannel.register(selector, SelectionKey.OP_CONNECT, this);
+	        if(state == STATE_RECV_IP) {
+	            loginfo("1ConnectServer " + host + ":" + port);
+	            
+	            SocketChannel remoteChannel = SocketChannel.open();
+	            remoteChannel.configureBlocking(false);
+	            
+	            remoteChannel.setOption(StandardSocketOptions.SO_KEEPALIVE, true);
+	            remoteChannel.setOption(StandardSocketOptions.SO_REUSEADDR, true);
+	            
+	            remoteChannel.connect(new InetSocketAddress(host, port));
+	            remoteChannel.register(selector, SelectionKey.OP_CONNECT, this);
+	        }
+	        else {
+	            new Thread(new Runnable(){
+
+	                @Override
+	                public void run() {
+                        try {
+                            InetAddress addr = InetAddress.getByName(host);
+                            loginfo("Parse " + host + " to " + addr.getHostAddress());
+                            host = addr.getHostAddress();
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                            state = STATE_PARSE_ERROR;
+                        }
+                        queue.offer(Sock5Message.this);
+                        selector.wakeup();
+	                }}).run();
+	        }
+	        state = STATE_CONNECTING;
+	        
 	    }
 	}
 	
@@ -257,27 +290,59 @@ public class SocksServer {
 	    int bind = 1080;
         SocksServer s = new SocksServer();
         System.out.println("SocksServer Listening " + bind + " ...");
-        s.syncStart("0.0.0.0", bind);
+        s.start("0.0.0.0", bind);
         System.out.println("Stopped.");
 	}
 	
 	
-/*	public boolean start(int port) {
-		return start("127.0.0.1", port);
-	}*/
+	public void start(int port) {
+		start("127.0.0.1", port);
+	}
 	
-    public void syncStart(String address, int port) {
-        running = true;
+    public void start(String address, int port) {
         ServerSocketChannel channel;
         try {
             selector = Selector.open();
             channel = ServerSocketChannel.open();
             channel.configureBlocking(false);
             channel.setOption(StandardSocketOptions.SO_REUSEADDR, true);
-            channel.bind(new InetSocketAddress(Inet4Address.getByName(address), port), 50);
+            channel.bind(new InetSocketAddress(address, port), 50);
             channel.register(selector, SelectionKey.OP_ACCEPT);
-            while (running) {
-                selector.select();
+            
+            int count = 0;
+            while (true) {
+                count = selector.select();
+                Date begin = new Date();
+                /*if(count == 0) {
+                    //处理wakeup
+                    Sock5Message msg = queue.poll();
+                    if(msg != null) {
+                        if(msg.state == Sock5Message.STATE_PARSE_ERROR) {
+                            loginfo("Parse Error " + msg.host + ":" + msg.port);
+                            if (msg.sockChannel != null) {
+                                try {
+                                    msg.sockChannel.close();
+                                } catch (IOException e1) {
+                                    e1.printStackTrace();
+                                }
+                            }
+                        }
+                        else {
+                            loginfo("2ConnectServer " + msg.host + ":" + msg.port);
+                            
+                            SocketChannel remoteChannel = SocketChannel.open();
+                            remoteChannel.configureBlocking(false);
+                            
+                            remoteChannel.setOption(StandardSocketOptions.SO_KEEPALIVE, true);
+                            remoteChannel.setOption(StandardSocketOptions.SO_REUSEADDR, true);
+                            
+                            remoteChannel.connect(new InetSocketAddress(msg.host, msg.port));
+                            remoteChannel.register(selector, SelectionKey.OP_CONNECT, msg);
+                        }
+                    }
+                    continue;
+                }*/
+                
                 Set<SelectionKey> keys = selector.selectedKeys();
                 Iterator<SelectionKey> keyIterator = keys.iterator();
                 while (keyIterator.hasNext()) {
@@ -295,6 +360,12 @@ public class SocksServer {
                     }
                     keyIterator.remove();
                 }
+                Date end = new Date();
+                long ts = end.getTime() - begin.getTime();
+                if(ts > 1000) {
+                    loginfo("Slowlly------------------------------- " + ts);
+                }
+                
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -310,8 +381,7 @@ public class SocksServer {
         clientChannel.setOption(StandardSocketOptions.SO_REUSEADDR, true);
         clientChannel.setOption(StandardSocketOptions.SO_KEEPALIVE, true);
         clientChannel.register(selector, SelectionKey.OP_READ, new Sock5Message());
-        Socket sock = clientChannel.socket();
-        loginfo("Accept client " + sock.getInetAddress().getHostAddress() + ":" + sock.getPort());
+        loginfo("Accept client " + clientChannel);
     }
     
     private void channelConnect(SelectionKey key) {
@@ -334,7 +404,10 @@ public class SocksServer {
             else {
                 key.cancel();
                 loginfo("Connect failure " + msg.host + ":" + msg.port);
+                
                 if (msg.sockChannel != null) {
+                    byte[] reply = {5, 1, 0, 1 ,0, 0, 0, 0, 1, 1};
+                    msg.sockChannel.write(ByteBuffer.wrap(reply)); // general SOCKS server failure
                     try {
                         msg.sockChannel.close();
                     } catch (IOException e1) {
@@ -366,7 +439,7 @@ public class SocksServer {
 					key.cancel();
 					try { originCh.close();} catch (IOException e1) {e1.printStackTrace();}
 				}
-			} catch (IOException e) {
+			} catch (Exception e) {
 			    logdebug("2 Close " + obj);
 				key.cancel();
 				try { originCh.close();} catch (IOException e1) {e1.printStackTrace();}
@@ -410,36 +483,4 @@ public class SocksServer {
         try { originCh.close();} catch (IOException e1) {e1.printStackTrace();}
     }
 
-	/*public boolean start(String address, int port) {
-		if (running) return true;
-		ServerSocketChannel channel;
-		ListenSocket server;
-		try {
-			channel = ServerSocketChannel.open();
-			localSock = channel.socket();
-			localSock.bind(new InetSocketAddress(address, port));
-			server = new ListenSocket();
-		} catch (IOException e) {
-			e.printStackTrace();
-			return false;
-		}
-		serverThread = new Thread(server);
-		running = true;
-		serverThread.start();
-		return true;
-	}*/
-	
-	public void stop() {
-		if (running) return;
-		running = false;
-		try {
-			localSock.close();
-		} catch (IOException  e) {
-			e.printStackTrace();
-		}
-	}
-	
-	public boolean isRunning() {
-		return running;
-	}
 }

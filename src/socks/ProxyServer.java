@@ -168,7 +168,7 @@ public class ProxyServer implements Runnable{
                                       +ss.getLocalPort());
         while(true){
           Socket s = ss.accept();
-          log("Accepted from:"+s.getInetAddress().getHostName()+":"
+          log("Accepted from:"+s.getInetAddress().getHostAddress()+":"
                               +s.getPort());
           ProxyServer ps = new ProxyServer(auth,s);
           (new Thread(ps)).start();
