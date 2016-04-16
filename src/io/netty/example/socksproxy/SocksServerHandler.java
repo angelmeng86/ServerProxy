@@ -28,8 +28,10 @@ import io.netty.handler.codec.socksx.v5.Socks5InitialRequest;
 import io.netty.handler.codec.socksx.v5.Socks5CommandRequest;
 import io.netty.handler.codec.socksx.v5.Socks5CommandRequestDecoder;
 import io.netty.handler.codec.socksx.v5.Socks5CommandType;
+import io.netty.handler.codec.socksx.v5.Socks5InitialRequestDecoder;
 import io.netty.handler.codec.socksx.v5.Socks5PasswordAuthRequest;
 import io.netty.handler.codec.socksx.v5.Socks5PasswordAuthStatus;
+import io.netty.handler.codec.socksx.v5.Socks5ServerEncoder;
 
 @ChannelHandler.Sharable
 public final class SocksServerHandler extends SimpleChannelInboundHandler<SocksMessage> {
@@ -62,6 +64,11 @@ public final class SocksServerHandler extends SimpleChannelInboundHandler<SocksM
                     ctx.pipeline().addFirst(new Socks5CommandRequestDecoder());
                     ctx.write(new DefaultSocks5PasswordAuthResponse(Socks5PasswordAuthStatus.SUCCESS));
                 } else if (socksRequest instanceof Socks5CommandRequest) {
+                    /*Socks5InitialRequestDecoder handle = ctx.pipeline().get(Socks5InitialRequestDecoder.class);
+                    if(handle != null) {
+                        System.out.println("LWZ Remove" + handle);
+                        ctx.pipeline().remove(handle);
+                    }*/
                     Socks5CommandRequest socks5CmdRequest = (Socks5CommandRequest) socksRequest;
                     if (socks5CmdRequest.type() == Socks5CommandType.CONNECT) {
                         ctx.pipeline().addLast(new SocksServerConnectHandler());
