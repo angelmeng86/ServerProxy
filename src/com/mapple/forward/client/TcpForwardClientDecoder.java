@@ -5,7 +5,7 @@ import com.mapple.forward.ForwardCmd;
 import com.mapple.forward.ForwardConnect;
 import com.mapple.forward.ForwardData;
 import com.mapple.forward.ForwardDisconnect;
-import com.mapple.forward.ForwardLoginAck;
+import com.mapple.forward.ForwardLogin;
 import com.mapple.forward.ForwardVersion;
 import com.mapple.forward.client.TcpForwardClientDecoder.State;
 import com.mapple.socksproxy.SocksServerUtils;
@@ -33,7 +33,6 @@ public class TcpForwardClientDecoder extends ReplayingDecoder<State> {
     enum State {
         START,
         LOGINACK,
-        BEAT,
         CONNECT,
         DATA,
         DISCONNECT
@@ -45,12 +44,15 @@ public class TcpForwardClientDecoder extends ReplayingDecoder<State> {
     }
     
     @Override
+    public void channelActive(ChannelHandlerContext ctx) {
+        ctx.writeAndFlush(new ForwardLogin("LWZ"));
+    }
+    
+    @Override
     protected void decode(ChannelHandlerContext ctx, ByteBuf in,
         List<Object> out) throws Exception {
-        System.out.println("123客户端接收数据----- ");
         switch (state()) {
         case START: {
-            System.out.println("客户端接收数据----- ");
             final byte version = in.readByte();
             if (version != ForwardVersion.FORWARD1.byteValue()) {
                 throw new DecoderException("unsupported version: "
@@ -64,8 +66,9 @@ public class TcpForwardClientDecoder extends ReplayingDecoder<State> {
             case LOGINACK:
                 state = State.LOGINACK;
                 break;
-            case BEAT:
-                state = State.BEAT;
+            case BEAT: {
+                ctx.writeAndFlush(new ForwardBeat());
+            }
                 break;
             case CONNECT:
                 state = State.CONNECT;
@@ -76,25 +79,20 @@ public class TcpForwardClientDecoder extends ReplayingDecoder<State> {
             default:
                 throw new DecoderException("unsupported cmd: (expected: " + cmd.byteValue() + ')');
             }
-            
+
             final byte rsv = in.readByte();
             if(rsv != 0x00) {
                 throw new DecoderException("unsupported rsv: (expected: " + rsv + ')');
             }
-            
+
             checkpoint(state);
         }
+        	break;
         case LOGINACK: {
             final byte rep = in.readByte();
-            System.out.println("登录结果----- " + rep);
-            
-//            out.add(new ForwardLoginAck(rep));
-            checkpoint(State.START);
-        }
-            break;
-        case BEAT: {
-            System.out.println("客户端接收到心跳包-----");
-            ctx.writeAndFlush(new ForwardBeat());
+            if(rep != 0x00) {
+                throw new DecoderException("login failed rep: " + rep);
+            }
             checkpoint(State.START);
         }
             break;

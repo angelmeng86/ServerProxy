@@ -1,6 +1,5 @@
 package com.mapple.forward.server;
 
-import com.mapple.forward.ForwardBeat;
 import com.mapple.forward.ForwardCmd;
 import com.mapple.forward.ForwardConnectAck;
 import com.mapple.forward.ForwardData;
@@ -34,7 +33,6 @@ public class TcpForwardServerDecoder extends ReplayingDecoder<State> {
 	enum State {
         START,
         LOGIN,
-        BEAT,
         CONNECTACK,
         DATA,
         DISCONNECT
@@ -48,10 +46,8 @@ public class TcpForwardServerDecoder extends ReplayingDecoder<State> {
 	@Override
 	protected void decode(ChannelHandlerContext ctx, ByteBuf in,
 		List<Object> out) throws Exception {
-	    System.out.println("123服务端接收数据----- ");
 		switch (state()) {
 		case START: {
-		    System.out.println("服务端接收数据-----");
 			final byte version = in.readByte();
 			if (version != ForwardVersion.FORWARD1.byteValue()) {
 				throw new DecoderException("unsupported version: "
@@ -65,8 +61,9 @@ public class TcpForwardServerDecoder extends ReplayingDecoder<State> {
 			case LOGIN:
 				state = State.LOGIN;
 				break;
-			case BEAT:
-				state = State.BEAT;
+			case BEAT: {
+				
+			}
 				break;
 			case CONNECTACK:
 				state = State.CONNECTACK;
@@ -85,19 +82,13 @@ public class TcpForwardServerDecoder extends ReplayingDecoder<State> {
 			
 			checkpoint(state);
 		}
+			break;
 		case LOGIN: {
-		    System.out.println("服务端接收登录-----");
 			final int len = in.readUnsignedByte();
 			final String name = in.toString(in.readerIndex(), len, CharsetUtil.UTF_8);
 			in.skipBytes(len);
 			
 			out.add(new ForwardLogin(name));
-			checkpoint(State.START);
-		}
-			break;
-		case BEAT: {
-		    System.out.println("服务端接收到心跳包-----");
-//			ctx.writeAndFlush(new ForwardBeat());
 			checkpoint(State.START);
 		}
 			break;

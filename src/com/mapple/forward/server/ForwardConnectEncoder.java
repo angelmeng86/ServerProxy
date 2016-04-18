@@ -4,10 +4,12 @@ import com.mapple.forward.ForwardConnect;
 import com.mapple.forward.ForwardUtils;
 
 import io.netty.buffer.ByteBuf;
+import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.MessageToByteEncoder;
 import io.netty.handler.codec.socksx.v5.Socks5AddressEncoder;
 
+@ChannelHandler.Sharable
 public class ForwardConnectEncoder extends MessageToByteEncoder<ForwardConnect> {
     
     private final Socks5AddressEncoder addressEncoder; 

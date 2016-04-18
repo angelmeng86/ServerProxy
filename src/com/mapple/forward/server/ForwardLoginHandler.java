@@ -4,11 +4,13 @@ import com.mapple.forward.ForwardLogin;
 import com.mapple.forward.ForwardLoginAck;
 import com.mapple.socksproxy.SocksServerUtils;
 
+import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.util.internal.logging.InternalLogger;
 import io.netty.util.internal.logging.InternalLoggerFactory;
 
+@ChannelHandler.Sharable
 public class ForwardLoginHandler extends SimpleChannelInboundHandler<ForwardLogin> {
     
     private static final InternalLogger logger =
@@ -20,7 +22,7 @@ public class ForwardLoginHandler extends SimpleChannelInboundHandler<ForwardLogi
     protected void channelRead0(ChannelHandlerContext ctx, ForwardLogin msg)
             throws Exception {
         
-        System.out.println("客户端转发连接：" + msg.getUserName() + " " + ctx);
+    	System.out.println("客户端转发连接：" + msg.getUserName() + " " + ctx.channel().id().asLongText() + " " + ctx.channel().id().asShortText());
         ctx.channel().writeAndFlush(new ForwardLoginAck((byte)0x00));
     }
 

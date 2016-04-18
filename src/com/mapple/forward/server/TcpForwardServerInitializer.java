@@ -15,23 +15,19 @@ public class TcpForwardServerInitializer extends ChannelInitializer<SocketChanne
 
 	@Override
 	protected void initChannel(SocketChannel ch) throws Exception {
-	    System.out.println("新连接进来-----");
-	    
 		ch.pipeline().addLast(
 		        ForwardLoginAckEncoder.INSTANCE,
 		        ForwardConnectEncoder.INSTANCE,
 		        ForwardBeatEncoder.INSTANCE,
 		        ForwardDataEncoder.INSTANCE,
-		        ForwardDisconnectEncoder.INSTANCE,
-		        ForwardBeatEncoder.INSTANCE);
+		        ForwardDisconnectEncoder.INSTANCE);
 		
+		ch.pipeline().addLast("idleStateHandler", new IdleStateHandler(60, 30, 0));
 		ch.pipeline().addLast(
-                new LoggingHandler(LogLevel.DEBUG),
+				new LoggingHandler(LogLevel.DEBUG),
+				new ForwardBeatHandler(),
                 new TcpForwardServerDecoder(),
                 ForwardLoginHandler.INSTANCE);
-		
-		ch.pipeline().addLast("idleStateHandler", new IdleStateHandler(20, 10, 0));
-        ch.pipeline().addLast(ForwardBeatHandler.INSTANCE);
 	}
 
 }
