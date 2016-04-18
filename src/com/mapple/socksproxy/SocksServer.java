@@ -15,11 +15,17 @@
  */
 package com.mapple.socksproxy;
 
+import com.mapple.forward.client.TcpForwardClientInitializer;
+import com.mapple.forward.server.TcpForwardServerInitializer;
+
+import io.netty.bootstrap.Bootstrap;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.ChannelFuture;
+import io.netty.channel.ChannelOption;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
+import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.logging.LogLevel;
 import io.netty.handler.logging.LoggingHandler;
 
@@ -29,31 +35,57 @@ public final class SocksServer {
     static final int PORT2 = Integer.parseInt(System.getProperty("tcpforword", "1986"));
 
     public static void main(String[] args) throws Exception {
-        System.out.println("OYE");
-        EventLoopGroup bossGroup = new NioEventLoopGroup(1);
+        System.out.println("OYE!!!");
+//        EventLoopGroup bossGroup = new NioEventLoopGroup(1);
         EventLoopGroup workerGroup = new NioEventLoopGroup();
         
         EventLoopGroup boss2Group = new NioEventLoopGroup(1);
+        
         try {
-            ServerBootstrap b = new ServerBootstrap();
-            b.group(bossGroup, workerGroup)
-             .channel(NioServerSocketChannel.class)
-             .handler(new LoggingHandler(LogLevel.INFO))
-             .childHandler(new SocksServerInitializer());
-            ChannelFuture futrue = b.bind(PORT).sync().channel().closeFuture();
+//            ServerBootstrap b = new ServerBootstrap();
+//            b.group(bossGroup, workerGroup)
+//             .channel(NioServerSocketChannel.class)
+//             .option(ChannelOption.SO_REUSEADDR, true)
+//             .handler(new LoggingHandler(LogLevel.INFO))
+//             .childHandler(new SocksServerInitializer());
+//            ChannelFuture futrue = b.bind(PORT).sync().channel().closeFuture();
             
             ServerBootstrap forword = new ServerBootstrap();
             forword.group(boss2Group, workerGroup)
              .channel(NioServerSocketChannel.class)
+             .option(ChannelOption.SO_REUSEADDR, true)
              .handler(new LoggingHandler(LogLevel.INFO))
-             .childHandler(new SocksServerInitializer());
+             .childHandler(new TcpForwardServerInitializer());
             ChannelFuture futrue2 = forword.bind(PORT2).sync().channel().closeFuture();
             
-            futrue.sync();
+         // Configure the client.
+            EventLoopGroup group = new NioEventLoopGroup();
+            try {
+                Bootstrap bs = new Bootstrap();
+                bs.group(group)
+                 .channel(NioSocketChannel.class)
+                 .option(ChannelOption.TCP_NODELAY, true)
+                 .handler(new TcpForwardClientInitializer());
+
+                // Start the client.
+                ChannelFuture f = bs.connect("127.0.0.1", PORT2).sync();
+                System.out.println("Connect " + PORT2);
+                // Wait until the connection is closed.
+                f.channel().closeFuture().sync();
+                System.out.println("Client Close " + PORT2);
+            } finally {
+                // Shut down the event loop to terminate all threads.
+                group.shutdownGracefully();
+            }
+            
+//            futrue.sync();
             futrue2.sync();
         } finally {
-            bossGroup.shutdownGracefully();
+//            bossGroup.shutdownGracefully();
+            boss2Group.shutdownGracefully();
             workerGroup.shutdownGracefully();
         }
+        
+        
     }
 }

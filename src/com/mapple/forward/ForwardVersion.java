@@ -1,4 +1,4 @@
-package com.mapple.socksforward;
+package com.mapple.forward;
 
 public enum ForwardVersion {
 	FORWARD1((byte) 0x01),

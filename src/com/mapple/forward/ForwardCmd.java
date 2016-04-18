@@ -1,4 +1,4 @@
-package com.mapple.socksforward;
+package com.mapple.forward;
 
 public enum ForwardCmd {
 	LOGIN((byte) 0x01),
@@ -7,6 +7,7 @@ public enum ForwardCmd {
 	CONNECT((byte) 0x13),
 	CONNECTACK((byte) 0x03),
 	DATA((byte) 0x30),
+	DISCONNECT((byte) 0x32),
 
     UNKNOWN((byte) 0xff);
 
@@ -28,6 +29,9 @@ public enum ForwardCmd {
         }
         if (b == DATA.byteValue()) {
             return DATA;
+        }
+        if (b == DISCONNECT.byteValue()) {
+            return DISCONNECT;
         }
         return UNKNOWN;
     }

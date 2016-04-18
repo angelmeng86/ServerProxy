@@ -1,4 +1,4 @@
-package com.mapple.socksforward;
+package com.mapple.forward;
 
 public interface ForwardMessage {
 	ForwardVersion version();

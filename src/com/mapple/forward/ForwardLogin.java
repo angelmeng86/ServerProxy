@@ -1,10 +1,14 @@
-package com.mapple.socksforward;
+package com.mapple.forward;
 
-public class ForwardLoginRequest implements ForwardMessage {
+import com.mapple.forward.ForwardCmd;
+import com.mapple.forward.ForwardMessage;
+import com.mapple.forward.ForwardVersion;
+
+public class ForwardLogin implements ForwardMessage {
 
 	private String userName = null;
 	
-	public ForwardLoginRequest(String userName) {
+	public ForwardLogin(String userName) {
 		this.userName = userName;
 	}
 	
