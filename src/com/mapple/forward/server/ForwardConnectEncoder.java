@@ -1,33 +1,60 @@
 package com.mapple.forward.server;
 
 import com.mapple.forward.ForwardConnect;
+import com.mapple.forward.ForwardDisconnect;
 import com.mapple.forward.ForwardUtils;
 
+import java.util.concurrent.ConcurrentHashMap;
+
 import io.netty.buffer.ByteBuf;
-import io.netty.channel.ChannelHandler;
+import io.netty.channel.Channel;
+import io.netty.channel.ChannelFuture;
+import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.MessageToByteEncoder;
 import io.netty.handler.codec.socksx.v5.Socks5AddressEncoder;
+import io.netty.util.NetUtil;
 
-@ChannelHandler.Sharable
 public class ForwardConnectEncoder extends MessageToByteEncoder<ForwardConnect> {
     
     private final Socks5AddressEncoder addressEncoder; 
     
-    public static final ForwardConnectEncoder INSTANCE = new ForwardConnectEncoder();
+    private ConcurrentHashMap<String, Channel> connectList = new ConcurrentHashMap<String, Channel>();
     
     public ForwardConnectEncoder() {
         this.addressEncoder = Socks5AddressEncoder.DEFAULT;
     }
 
     @Override
-    protected void encode(ChannelHandlerContext ctx, ForwardConnect msg, ByteBuf out)
+    protected void encode(final ChannelHandlerContext ctx, final ForwardConnect msg, ByteBuf out)
             throws Exception {
         ForwardUtils.writeHeader(msg, out);
-        out.writeBytes(msg.getUid());
+        out.writeBytes(NetUtil.createByteArrayFromIpAddressString(msg.getSrcAddr()));
+        out.writeShort(msg.getSrcPort());
         out.writeByte(msg.dstAddrType().byteValue());
         addressEncoder.encodeAddress(msg.dstAddrType(), msg.dstAddr(), out);
         out.writeShort(msg.dstPort());
+        
+        System.out.println("ForwardConnectEncoder " + msg.getId());
+        
+        connectList.put(msg.getId(), msg.getSrcChannel());
+        msg.getSrcChannel().closeFuture()
+        .addListener(new ChannelFutureListener() {
+            @Override
+            public void operationComplete(ChannelFuture future)
+                    throws Exception {
+                if(ctx.channel().isActive()) {
+                    ctx.writeAndFlush(new ForwardDisconnect(msg));
+                }
+                if(connectList.containsKey(msg.getId())) {
+                    connectList.remove(msg.getId());
+                }
+            }
+        });
+    }
+
+    public ConcurrentHashMap<String, Channel> connectList() {
+        return connectList;
     }
 
 }

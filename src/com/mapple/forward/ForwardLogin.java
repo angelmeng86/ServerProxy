@@ -4,9 +4,14 @@ import com.mapple.forward.ForwardCmd;
 import com.mapple.forward.ForwardMessage;
 import com.mapple.forward.ForwardVersion;
 
+import io.netty.channel.Channel;
+
 public class ForwardLogin implements ForwardMessage {
 
-	private String userName = null;
+	private final String userName;
+	private String remoteAddr;
+    private int remotePort;
+    private Channel remoteChannel;
 	
 	public ForwardLogin(String userName) {
 		this.userName = userName;
@@ -26,8 +31,28 @@ public class ForwardLogin implements ForwardMessage {
 		return userName;
 	}
 
-	public void setUserName(String userName) {
-		this.userName = userName;
-	}
+    public String getRemoteAddr() {
+        return remoteAddr;
+    }
+
+    public void setRemoteAddr(String remoteAddr) {
+        this.remoteAddr = remoteAddr;
+    }
+
+    public int getRemotePort() {
+        return remotePort;
+    }
+
+    public void setRemotePort(int remotePort) {
+        this.remotePort = remotePort;
+    }
+
+    public Channel getRemoteChannel() {
+        return remoteChannel;
+    }
+
+    public void setRemoteChannel(Channel remoteChannel) {
+        this.remoteChannel = remoteChannel;
+    }
 
 }

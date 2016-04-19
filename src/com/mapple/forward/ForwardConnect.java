@@ -2,6 +2,7 @@ package com.mapple.forward;
 
 import java.net.IDN;
 
+import io.netty.channel.Channel;
 import io.netty.handler.codec.socksx.v5.Socks5AddressType;
 import io.netty.util.NetUtil;
 
@@ -10,14 +11,16 @@ public class ForwardConnect extends ForwardAddrMessage {
     private final Socks5AddressType dstAddrType;
     private final String dstAddr;
     private final int dstPort;
+    
+    private Channel srcChannel;
 
     @Override
     public ForwardCmd cmd() {
         return ForwardCmd.CONNECT;
     }
 
-    public ForwardConnect(byte[] uid, String srcAddr, int srcPort, Socks5AddressType dstAddrType, String dstAddr, int dstPort) {
-        super(uid, srcAddr, srcPort);
+    public ForwardConnect(String srcAddr, int srcPort, Socks5AddressType dstAddrType, String dstAddr, int dstPort) {
+        super(srcAddr, srcPort);
         
         if (dstAddrType == null) {
             throw new NullPointerException("dstAddrType");
@@ -60,6 +63,14 @@ public class ForwardConnect extends ForwardAddrMessage {
 
     public int dstPort() {
         return dstPort;
+    }
+
+    public Channel getSrcChannel() {
+        return srcChannel;
+    }
+
+    public void setSrcChannel(Channel srcChannel) {
+        this.srcChannel = srcChannel;
     }
 
 }

@@ -4,6 +4,10 @@ import com.mapple.forward.ForwardLogin;
 import com.mapple.forward.ForwardLoginAck;
 import com.mapple.socksproxy.SocksServerUtils;
 
+import java.net.InetSocketAddress;
+import java.util.concurrent.ConcurrentHashMap;
+
+import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
@@ -17,13 +21,24 @@ public class ForwardLoginHandler extends SimpleChannelInboundHandler<ForwardLogi
             InternalLoggerFactory.getInstance(ForwardLoginHandler.class);
     
     public static final ForwardLoginHandler INSTANCE = new ForwardLoginHandler();
+    
+    private ConcurrentHashMap<String, ForwardLogin> proxyList = new ConcurrentHashMap<String, ForwardLogin>();
 
+    public ConcurrentHashMap<String, ForwardLogin> proxyList() {
+        return proxyList;
+    }
+    
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, ForwardLogin msg)
             throws Exception {
+        InetSocketAddress addr = (InetSocketAddress) ctx.channel().remoteAddress();
+        msg.setRemoteAddr(addr.getAddress().getHostAddress());
+        msg.setRemotePort(addr.getPort());
+        msg.setRemoteChannel(ctx.channel());
+        logger.info("客户端转发连接：" + msg.getUserName() + "[" + msg.getRemoteAddr() + ":" + msg.getRemotePort() + "]");
+        ctx.writeAndFlush(new ForwardLoginAck((byte)0x00));
         
-    	System.out.println("客户端转发连接：" + msg.getUserName() + " " + ctx.channel().id().asLongText() + " " + ctx.channel().id().asShortText());
-        ctx.channel().writeAndFlush(new ForwardLoginAck((byte)0x00));
+        proxyList.put(msg.getUserName(), msg);
     }
 
     @Override

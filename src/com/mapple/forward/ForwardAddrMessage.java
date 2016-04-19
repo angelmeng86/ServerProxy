@@ -2,14 +2,15 @@ package com.mapple.forward;
 
 public abstract class ForwardAddrMessage implements ForwardMessage {
     
-    private final byte[] uid;
+    private final String id;
     private final String srcAddr;
     private final int srcPort;
     
-    public ForwardAddrMessage(byte[] uid, String srcAddr, int srcPort) {
-        if (uid == null) {
-            throw new NullPointerException("uid");
-        }
+    public ForwardAddrMessage(ForwardAddrMessage addr) {
+        this(addr.srcAddr, addr.srcPort);
+    }
+    
+    public ForwardAddrMessage(String srcAddr, int srcPort) {
         if (srcAddr == null) {
             throw new NullPointerException("srcAddr");
         }
@@ -18,7 +19,7 @@ public abstract class ForwardAddrMessage implements ForwardMessage {
             throw new IllegalArgumentException("srcPort: " + srcPort + " (expected: 1~65535)");
         }
         
-        this.uid = uid;
+        this.id = srcAddr + ":" + srcPort;
         this.srcAddr = srcAddr;
         this.srcPort = srcPort;
     }
@@ -36,8 +37,8 @@ public abstract class ForwardAddrMessage implements ForwardMessage {
         return srcPort;
     }
 
-    public byte[] getUid() {
-        return uid;
+    public String getId() {
+        return id;
     }
 
 }

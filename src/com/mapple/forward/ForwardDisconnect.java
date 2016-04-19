@@ -1,9 +1,13 @@
 package com.mapple.forward;
 
 public class ForwardDisconnect extends ForwardAddrMessage {
+    
+    public ForwardDisconnect(ForwardAddrMessage addr) {
+        super(addr);
+    }
 
-    public ForwardDisconnect(byte[] uid, String srcAddr, int srcPort) {
-        super(uid, srcAddr, srcPort);
+    public ForwardDisconnect(String srcAddr, int srcPort) {
+        super(srcAddr, srcPort);
     }
 
     @Override

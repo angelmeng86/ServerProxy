@@ -17,7 +17,6 @@ public class ForwardLoginEncoder extends MessageToByteEncoder<ForwardLogin> {
     @Override
     protected void encode(ChannelHandlerContext ctx, ForwardLogin msg, ByteBuf out)
             throws Exception {
-        System.out.println("发送登录请求");
         ForwardUtils.writeHeader(msg, out);
         byte[] name = msg.getUserName().getBytes(CharsetUtil.UTF_8);
         out.writeByte(name.length);

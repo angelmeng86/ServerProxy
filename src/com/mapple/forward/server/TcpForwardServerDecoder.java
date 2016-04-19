@@ -9,6 +9,8 @@ import com.mapple.forward.ForwardVersion;
 import com.mapple.forward.server.TcpForwardServerDecoder.State;
 import com.mapple.socksproxy.SocksServerUtils;
 
+import org.bouncycastle.util.encoders.Hex;
+
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.DecoderException;
@@ -24,7 +26,6 @@ import java.util.List;
 
 public class TcpForwardServerDecoder extends ReplayingDecoder<State> {
     
-	private byte[] uid = new byte[6];
     private final Socks5AddressDecoder addressDecoder;
     
     private static final InternalLogger logger =
@@ -50,6 +51,8 @@ public class TcpForwardServerDecoder extends ReplayingDecoder<State> {
 		case START: {
 			final byte version = in.readByte();
 			if (version != ForwardVersion.FORWARD1.byteValue()) {
+			    int len = actualReadableBytes();
+			    System.out.println("123 OYE:" + len);
 				throw new DecoderException("unsupported version: "
 						+ version + " (expected: "
 						+ ForwardVersion.FORWARD1.byteValue() + ')');
@@ -71,15 +74,18 @@ public class TcpForwardServerDecoder extends ReplayingDecoder<State> {
 			case DATA:
 				state = State.DATA;
 				break;
+			case DISCONNECT:
+                state = State.DISCONNECT;
+                break;
 			default:
-				throw new DecoderException("unsupported cmd: (expected: " + cmd.byteValue() + ')');
+				throw new DecoderException("unsupported cmd: (expected: " + String.format("0x%02x", cmd.byteValue()) + ')');
 			}
 			
 			final byte rsv = in.readByte();
 			if(rsv != 0x00) {
 				throw new DecoderException("unsupported rsv: (expected: " + rsv + ')');
 			}
-			
+			System.out.println("服务端CMD " + String.format("0x%02x", cmd.byteValue()));
 			checkpoint(state);
 		}
 			break;
@@ -93,7 +99,6 @@ public class TcpForwardServerDecoder extends ReplayingDecoder<State> {
 		}
 			break;
 		case CONNECTACK: {
-		    in.getBytes(in.readerIndex(), uid);
 		    final String addr = NetUtil.intToIpAddress(in.readInt());
 		    final int port = in.readUnsignedShort();
 			
@@ -102,30 +107,31 @@ public class TcpForwardServerDecoder extends ReplayingDecoder<State> {
 			final Socks5AddressType dstAddrType = Socks5AddressType.valueOf(in.readByte());
 			final String dstAddr = addressDecoder.decodeAddress(dstAddrType, in);
             final int dstPort = in.readUnsignedShort();
-            out.add(new ForwardConnectAck(uid, addr, port, rep, dstAddrType, dstAddr, dstPort));
+            out.add(new ForwardConnectAck(addr, port, rep, dstAddrType, dstAddr, dstPort));
             checkpoint(State.START);
 		}
 			break;
 		case DATA: {
-		    in.getBytes(in.readerIndex(), uid);
             final String addr = NetUtil.intToIpAddress(in.readInt());
             final int port = in.readUnsignedShort();
             
-            final int len = in.readUnsignedShort();
-            if (actualReadableBytes() < len) {
-                break;
+            final int len = in.readUnsignedByte();
+            System.out.println("服务端LEN:" + len);
+            if(len > 0) {
+                if (actualReadableBytes() < len) {
+                    break;
+                }
+                
+                out.add(new ForwardData(addr, port, in.readSlice(len)));
             }
-            
-            out.add(new ForwardData(uid, addr, port, in.readSlice(len).retain()));
             checkpoint(State.START);
 		}
 			break;
 		case DISCONNECT: {
-		    in.getBytes(in.readerIndex(), uid);
             final String addr = NetUtil.intToIpAddress(in.readInt());
             final int port = in.readUnsignedShort();
             
-            out.add(new ForwardDisconnect(uid, addr, port));
+            out.add(new ForwardDisconnect(addr, port));
             checkpoint(State.START);
 		}
 		    break;
@@ -141,6 +147,7 @@ public class TcpForwardServerDecoder extends ReplayingDecoder<State> {
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable throwable) {
         throwable.printStackTrace();
+        System.out.println("exceptionCaught OYE");
         SocksServerUtils.closeOnFlush(ctx.channel());
     }
 }

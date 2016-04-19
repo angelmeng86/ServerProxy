@@ -14,14 +14,21 @@ public class ForwardConnectAck extends ForwardAddrMessage {
     private final String dstAddr;
     private final int dstPort;
     private final byte rep;
+    
+    public static final byte SUCCESS = 0x00;
+    public static final byte FAILURE = 0x01;
 
     @Override
     public ForwardCmd cmd() {
         return ForwardCmd.CONNECTACK;
     }
 
-    public ForwardConnectAck(byte[] uid, String srcAddr, int srcPort, byte rep, Socks5AddressType dstAddrType, String dstAddr, int dstPort) {
-        super(uid, srcAddr, srcPort);
+    public ForwardConnectAck(ForwardConnect connect, byte rep) {
+        this(connect.getSrcAddr(), connect.getSrcPort(), rep, connect.dstAddrType(), connect.dstAddr(), connect.dstPort());
+    }
+    
+    public ForwardConnectAck(String srcAddr, int srcPort, byte rep, Socks5AddressType dstAddrType, String dstAddr, int dstPort) {
+        super(srcAddr, srcPort);
         
         if (dstAddrType == null) {
             throw new NullPointerException("dstAddrType");

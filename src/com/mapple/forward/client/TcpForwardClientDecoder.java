@@ -24,7 +24,6 @@ import java.util.List;
 
 public class TcpForwardClientDecoder extends ReplayingDecoder<State> {
     
-    private byte[] uid = new byte[6];
     private final Socks5AddressDecoder addressDecoder;
     
     private static final InternalLogger logger =
@@ -44,7 +43,8 @@ public class TcpForwardClientDecoder extends ReplayingDecoder<State> {
     }
     
     @Override
-    public void channelActive(ChannelHandlerContext ctx) {
+    public void channelActive(ChannelHandlerContext ctx) throws Exception {
+        super.channelActive(ctx);
         ctx.writeAndFlush(new ForwardLogin("LWZ"));
     }
     
@@ -76,15 +76,18 @@ public class TcpForwardClientDecoder extends ReplayingDecoder<State> {
             case DATA:
                 state = State.DATA;
                 break;
+            case DISCONNECT:
+                state = State.DISCONNECT;
+                break;
             default:
-                throw new DecoderException("unsupported cmd: (expected: " + cmd.byteValue() + ')');
+                throw new DecoderException("unsupported cmd: (expected: " + String.format("0x%02x", cmd.byteValue()) + ')');
             }
 
             final byte rsv = in.readByte();
             if(rsv != 0x00) {
                 throw new DecoderException("unsupported rsv: (expected: " + rsv + ')');
             }
-
+            System.out.println("客户端CMD " + String.format("0x%02x", cmd.byteValue()));
             checkpoint(state);
         }
         	break;
@@ -97,37 +100,37 @@ public class TcpForwardClientDecoder extends ReplayingDecoder<State> {
         }
             break;
         case CONNECT: {
-            in.getBytes(in.readerIndex(), uid);
             final String addr = NetUtil.intToIpAddress(in.readInt());
             final int port = in.readUnsignedShort();
             
             final Socks5AddressType dstAddrType = Socks5AddressType.valueOf(in.readByte());
             final String dstAddr = addressDecoder.decodeAddress(dstAddrType, in);
             final int dstPort = in.readUnsignedShort();
-            out.add(new ForwardConnect(uid, addr, port, dstAddrType, dstAddr, dstPort));
+            out.add(new ForwardConnect(addr, port, dstAddrType, dstAddr, dstPort));
             checkpoint(State.START);
         }
             break;
         case DATA: {
-            in.getBytes(in.readerIndex(), uid);
             final String addr = NetUtil.intToIpAddress(in.readInt());
             final int port = in.readUnsignedShort();
             
-            final int len = in.readUnsignedShort();
-            if (actualReadableBytes() < len) {
-                break;
+            final int len = in.readUnsignedByte();
+            System.out.println("客户端DATA len:" + len);
+            if(len > 0) {
+                if (actualReadableBytes() < len) {
+                    break;
+                }
+                
+                out.add(new ForwardData(addr, port, in.readSlice(len)));
             }
-            
-            out.add(new ForwardData(uid, addr, port, in.readSlice(len).retain()));
             checkpoint(State.START);
         }
             break;
         case DISCONNECT: {
-            in.getBytes(in.readerIndex(), uid);
             final String addr = NetUtil.intToIpAddress(in.readInt());
             final int port = in.readUnsignedShort();
             
-            out.add(new ForwardDisconnect(uid, addr, port));
+            out.add(new ForwardDisconnect(addr, port));
             checkpoint(State.START);
         }
             break;

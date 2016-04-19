@@ -15,6 +15,8 @@
  */
 package com.mapple.socksproxy;
 
+import com.mapple.forward.socks.SocksServerHandlerEx;
+
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.handler.codec.socksx.SocksPortUnificationServerHandler;
@@ -27,6 +29,6 @@ public final class SocksServerInitializer extends ChannelInitializer<SocketChann
         ch.pipeline().addLast(
                 new LoggingHandler(LogLevel.DEBUG),
                 new SocksPortUnificationServerHandler(),
-                SocksServerHandler.INSTANCE);
+                SocksServerHandlerEx.INSTANCE);
     }
 }
