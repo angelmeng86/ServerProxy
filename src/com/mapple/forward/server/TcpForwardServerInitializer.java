@@ -7,8 +7,6 @@ import com.mapple.forward.ForwardDisconnectEncoder;
 
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.socket.SocketChannel;
-import io.netty.handler.logging.LogLevel;
-import io.netty.handler.logging.LoggingHandler;
 import io.netty.handler.timeout.IdleStateHandler;
 
 public class TcpForwardServerInitializer extends ChannelInitializer<SocketChannel> {
@@ -16,21 +14,22 @@ public class TcpForwardServerInitializer extends ChannelInitializer<SocketChanne
 	@Override
 	protected void initChannel(SocketChannel ch) throws Exception {
 		ch.pipeline().addLast(
-		        ForwardLoginAckEncoder.INSTANCE,
-		        ForwardBeatEncoder.INSTANCE,
-		        ForwardDataEncoder.INSTANCE,
-		        ForwardDisconnectEncoder.INSTANCE);
+		        new ForwardLoginAckEncoder(),
+		        new ForwardBeatEncoder(),
+		        new ForwardDataEncoder(),
+		        new ForwardDisconnectEncoder());
 		
 		ch.pipeline().addLast("connectEncoder", new ForwardConnectEncoder());
 		ch.pipeline().addLast("idleStateHandler", new IdleStateHandler(60, 30, 0));
 		
 		ch.pipeline().addLast(
-				new LoggingHandler(LogLevel.DEBUG),
+//				new LoggingHandler(LogLevel.DEBUG),
 				new ForwardBeatHandler(),
-                new TcpForwardServerDecoder(),
+				new TcpForwardServerDecoder(),
                 ForwardLoginHandler.INSTANCE,
-                ForwardServerDataHandler.INSTANCE,
-                new ForwardConnectAckHandler());
+                new ForwardServerDataHandler(),
+                new ForwardConnectAckHandler(),
+                new ForwardServerDisconnectHandler());
 	}
 
 }

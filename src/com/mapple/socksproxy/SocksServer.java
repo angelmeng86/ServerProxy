@@ -35,7 +35,7 @@ public final class SocksServer {
     static final int PORT2 = Integer.parseInt(System.getProperty("tcpforword", "1986"));
 
     public static void main(String[] args) throws Exception {
-        System.out.println("OYE!!!");
+        System.out.println("OYE!!! " + args.length);
         EventLoopGroup bossGroup = new NioEventLoopGroup(1);
         EventLoopGroup workerGroup = new NioEventLoopGroup();
         
@@ -61,24 +61,29 @@ public final class SocksServer {
             ChannelFuture futrue2 = forword.bind(PORT2).sync().channel().closeFuture();
             
          // Configure the client.
+            /*
             EventLoopGroup group = new NioEventLoopGroup();
             try {
                 Bootstrap bs = new Bootstrap();
                 bs.group(group)
                  .channel(NioSocketChannel.class)
                  .option(ChannelOption.TCP_NODELAY, true)
-                 .handler(new TcpForwardClientInitializer());
+                 .handler(new TcpForwardClientInitializer("LWZ"));
 
                 // Start the client.
                 ChannelFuture f = bs.connect("127.0.0.1", PORT2).sync();
                 System.out.println("Connect " + PORT2);
                 // Wait until the connection is closed.
                 f.channel().closeFuture().sync();
-            } finally {
+            } catch(Exception e) {
+                e.printStackTrace();
+            }
+            finally {
                 // Shut down the event loop to terminate all threads.
                 group.shutdownGracefully();
             }
             System.out.println("Client Close " + PORT2);
+            */
             
             futrue.sync();
             futrue2.sync();

@@ -46,7 +46,7 @@ public final class SocksServerHandlerEx extends SimpleChannelInboundHandler<Sock
             case SOCKS4a:
                 Socks4CommandRequest socksV4CmdRequest = (Socks4CommandRequest) socksRequest;
                 if (socksV4CmdRequest.type() == Socks4CommandType.CONNECT) {
-                    ctx.pipeline().addLast(new SocksServerConnectHandlerEx());
+                    ctx.pipeline().addLast(SocksServerConnectHandlerEx.INSTANCE);
                     ctx.pipeline().remove(this);
                     ctx.fireChannelRead(socksRequest);
                 } else {
@@ -71,7 +71,7 @@ public final class SocksServerHandlerEx extends SimpleChannelInboundHandler<Sock
                     }*/
                     Socks5CommandRequest socks5CmdRequest = (Socks5CommandRequest) socksRequest;
                     if (socks5CmdRequest.type() == Socks5CommandType.CONNECT) {
-                        ctx.pipeline().addLast(new SocksServerConnectHandlerEx());
+                        ctx.pipeline().addLast(SocksServerConnectHandlerEx.INSTANCE);
                         ctx.pipeline().remove(this);
                         ctx.fireChannelRead(socksRequest);
                     } else {

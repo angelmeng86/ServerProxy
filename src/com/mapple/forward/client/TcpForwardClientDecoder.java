@@ -6,9 +6,9 @@ import com.mapple.forward.ForwardConnect;
 import com.mapple.forward.ForwardData;
 import com.mapple.forward.ForwardDisconnect;
 import com.mapple.forward.ForwardLogin;
+import com.mapple.forward.ForwardUtils;
 import com.mapple.forward.ForwardVersion;
 import com.mapple.forward.client.TcpForwardClientDecoder.State;
-import com.mapple.socksproxy.SocksServerUtils;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
@@ -17,17 +17,13 @@ import io.netty.handler.codec.ReplayingDecoder;
 import io.netty.handler.codec.socksx.v5.Socks5AddressDecoder;
 import io.netty.handler.codec.socksx.v5.Socks5AddressType;
 import io.netty.util.NetUtil;
-import io.netty.util.internal.logging.InternalLogger;
-import io.netty.util.internal.logging.InternalLoggerFactory;
 
 import java.util.List;
 
 public class TcpForwardClientDecoder extends ReplayingDecoder<State> {
     
     private final Socks5AddressDecoder addressDecoder;
-    
-    private static final InternalLogger logger =
-            InternalLoggerFactory.getInstance(TcpForwardClientDecoder.class);
+    private final String userName;
     
     enum State {
         START,
@@ -37,15 +33,16 @@ public class TcpForwardClientDecoder extends ReplayingDecoder<State> {
         DISCONNECT
     }
 
-    public TcpForwardClientDecoder() {
+    public TcpForwardClientDecoder(String userName) {
         super(State.START);
+        this.userName = userName;
         this.addressDecoder = Socks5AddressDecoder.DEFAULT;
     }
     
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
         super.channelActive(ctx);
-        ctx.writeAndFlush(new ForwardLogin("LWZ"));
+        ctx.writeAndFlush(new ForwardLogin(userName));
     }
     
     @Override
@@ -87,7 +84,7 @@ public class TcpForwardClientDecoder extends ReplayingDecoder<State> {
             if(rsv != 0x00) {
                 throw new DecoderException("unsupported rsv: (expected: " + rsv + ')');
             }
-            System.out.println("客户端CMD " + String.format("0x%02x", cmd.byteValue()));
+//            System.out.println("客户端CMD " + String.format("0x%02x", cmd.byteValue()));
             checkpoint(state);
         }
         	break;
@@ -114,14 +111,13 @@ public class TcpForwardClientDecoder extends ReplayingDecoder<State> {
             final String addr = NetUtil.intToIpAddress(in.readInt());
             final int port = in.readUnsignedShort();
             
-            final int len = in.readUnsignedByte();
-            System.out.println("客户端DATA len:" + len);
+            final int len = in.readShort();
+//            System.out.println("客户端DATA len:" + len);
             if(len > 0) {
-                if (actualReadableBytes() < len) {
+                if (in.readableBytes() < len) {
                     break;
                 }
-                
-                out.add(new ForwardData(addr, port, in.readSlice(len)));
+                out.add(new ForwardData(addr, port, in.readSlice(len).retain()));
             }
             checkpoint(State.START);
         }
@@ -146,6 +142,6 @@ public class TcpForwardClientDecoder extends ReplayingDecoder<State> {
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable throwable) {
         throwable.printStackTrace();
-        SocksServerUtils.closeOnFlush(ctx.channel());
+        ForwardUtils.closeOnFlush(ctx.channel());
     }
 }

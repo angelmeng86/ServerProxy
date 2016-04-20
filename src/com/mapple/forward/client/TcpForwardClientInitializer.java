@@ -6,26 +6,31 @@ import com.mapple.forward.ForwardDisconnectEncoder;
 
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.socket.SocketChannel;
-import io.netty.handler.logging.LogLevel;
-import io.netty.handler.logging.LoggingHandler;
 
 public class TcpForwardClientInitializer extends ChannelInitializer<SocketChannel> {
 
+    private final String userName;
+    
+    public TcpForwardClientInitializer(String userName) {
+        this.userName = userName;
+    }
+    
     @Override
     protected void initChannel(SocketChannel ch) throws Exception {
     	ch.pipeline().addLast(
-    			ForwardLoginEncoder.INSTANCE,
-                ForwardBeatEncoder.INSTANCE,
-                ForwardDataEncoder.INSTANCE,
-                ForwardConnectAckEncoder.INSTANCE,
-                ForwardDisconnectEncoder.INSTANCE);
+    			new ForwardLoginEncoder(),
+                new ForwardBeatEncoder(),
+                new ForwardDataEncoder(),
+                new ForwardConnectAckEncoder(),
+                new ForwardDisconnectEncoder());
     	
         ch.pipeline().addLast(
-                new LoggingHandler(LogLevel.DEBUG),
-                new TcpForwardClientDecoder(), 
+//                new LoggingHandler(LogLevel.DEBUG),
+                new TcpForwardClientDecoder(userName), 
                 ForwardConnectHandler.INSTANCE,
-                ForwardClientDataHandler.INSTANCE,
-                ForwardClientDisconnectHandler.INSTANCE);
+                new ForwardClientDataHandler(),
+                new ForwardClientDisconnectHandler());
+        
     }
 
 }

@@ -1,9 +1,8 @@
 package com.mapple.forward.server;
 
 import com.mapple.forward.ForwardConnectAck;
-import com.mapple.forward.ForwardDataBytesEncoder;
 import com.mapple.forward.ForwardDisconnect;
-import com.mapple.forward.client.ForwardDataRemoteHandler;
+import com.mapple.forward.ForwardDataRemoteHandler;
 import com.mapple.forward.socks.SocksServerConnectHandlerEx;
 
 import java.util.concurrent.ConcurrentHashMap;
@@ -23,7 +22,6 @@ public class ForwardConnectAckHandler extends SimpleChannelInboundHandler<Forwar
         ForwardConnectEncoder ce = (ForwardConnectEncoder)ctx.pipeline().get("connectEncoder");
         ConcurrentHashMap<String, Channel> connectList = ce.connectList();
         final Channel ch = connectList.get(msg.getId());
-        System.out.println("ForwardConnectAckHandler");
         if(ch == null) {
             ctx.writeAndFlush(new ForwardDisconnect(msg));
         }
@@ -35,18 +33,12 @@ public class ForwardConnectAckHandler extends SimpleChannelInboundHandler<Forwar
                 @Override
                 public void operationComplete(ChannelFuture channelFuture) {
                     ch.pipeline().remove(SocksServerConnectHandlerEx.class);
-                    ch.pipeline().addLast(ForwardDataBytesEncoder.INSTANCE);
                     ch.pipeline().addLast(new ForwardDataRemoteHandler(ctx.channel(), msg));
                 }
             });
         }
     }
     
-    @Override
-    public void channelReadComplete(ChannelHandlerContext ctx) {
-        ctx.flush();
-    }
-
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable throwable) {
         throwable.printStackTrace();

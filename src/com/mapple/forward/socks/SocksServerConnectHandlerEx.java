@@ -40,13 +40,10 @@ public final class SocksServerConnectHandlerEx extends SimpleChannelInboundHandl
 
     public static final SocksServerConnectHandlerEx INSTANCE = new SocksServerConnectHandlerEx();
     
-    private boolean oye = false;
-    
     @Override
     public void channelRead0(final ChannelHandlerContext ctx, final SocksMessage message) throws Exception {
         ConcurrentHashMap<String, ForwardLogin> proxyList = ForwardLoginHandler.INSTANCE.proxyList();
-        ForwardLogin proxy = proxyList.get("LWZ");
-        System.out.println("SocksServerConnectHandlerEx");
+        ForwardLogin proxy = proxyList.elements().nextElement();
         if (proxy == null || !proxy.getRemoteChannel().isActive()) {
             if (message instanceof Socks4CommandRequest) {
                 ctx.writeAndFlush(
@@ -63,20 +60,15 @@ public final class SocksServerConnectHandlerEx extends SimpleChannelInboundHandl
                 ctx.close();
             }
         }
-        if(oye) {
-            ctx.close();
-            return;
-        }
-        oye = true;
         if (message instanceof Socks4CommandRequest) {
-            System.out.println("SocksServerConnectHandlerEx Socks4CommandRequest");
+//            System.out.println("SocksServerConnectHandlerEx Socks4CommandRequest");
             final Socks4CommandRequest request = (Socks4CommandRequest) message;
             InetSocketAddress addr = (InetSocketAddress) ctx.channel().remoteAddress();
             ForwardConnect fc = new ForwardConnect(addr.getAddress().getHostAddress(), addr.getPort(), Socks5AddressType.DOMAIN, request.dstAddr(), request.dstPort());
             fc.setSrcChannel(ctx.channel());
             proxy.getRemoteChannel().writeAndFlush(fc);
         } else if (message instanceof Socks5CommandRequest) {
-            System.out.println("SocksServerConnectHandlerEx Socks5CommandRequest");
+//            System.out.println("SocksServerConnectHandlerEx Socks5CommandRequest");
             final Socks5CommandRequest request = (Socks5CommandRequest) message;
             InetSocketAddress addr = (InetSocketAddress) ctx.channel().remoteAddress();
             ForwardConnect fc = new ForwardConnect(addr.getAddress().getHostAddress(), addr.getPort(), request.dstAddrType(), request.dstAddr(), request.dstPort());

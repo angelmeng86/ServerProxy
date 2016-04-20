@@ -17,5 +17,6 @@ public class ForwardBeatHandler extends ChannelDuplexHandler {
                 ctx.writeAndFlush(new ForwardBeat());
             }
         }
+        super.userEventTriggered(ctx, evt);
     }
 }

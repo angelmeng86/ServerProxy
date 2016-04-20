@@ -4,17 +4,17 @@ import io.netty.buffer.ByteBuf;
 
 public class ForwardData extends ForwardAddrMessage {
     
-//    private final ByteBuf data;
-    private final byte[] buffer;
+    private final ByteBuf data;
+//    private final byte[] buffer;
     
     public ForwardData(ForwardAddrMessage addr, ByteBuf data) {
         super(addr);
         if(data == null) {
             throw new NullPointerException("data");
         }
-//        this.data = data;
-        buffer = new byte[data.readableBytes()];
-        data.getBytes(data.readerIndex(), buffer);
+        this.data = data;
+//        buffer = new byte[data.readableBytes()];
+//        data.getBytes(data.readerIndex(), buffer);
     }
 
     public ForwardData(String srcAddr, int srcPort, ByteBuf data) {
@@ -22,9 +22,9 @@ public class ForwardData extends ForwardAddrMessage {
         if(data == null) {
             throw new NullPointerException("data");
         }
-//        this.data = data;
-        buffer = new byte[data.readableBytes()];
-        data.getBytes(data.readerIndex(), buffer);
+        this.data = data;
+//        buffer = new byte[data.readableBytes()];
+//        data.getBytes(data.readerIndex(), buffer);
     }
 
     @Override
@@ -32,8 +32,8 @@ public class ForwardData extends ForwardAddrMessage {
         return ForwardCmd.DATA;
     }
 
-    public byte[] getData() {
-        return buffer;
+    public ByteBuf getData() {
+        return data;
     }
 
 }

@@ -1,8 +1,7 @@
-package com.mapple.forward.client;
+package com.mapple.forward;
 
 import com.mapple.forward.ForwardAddrMessage;
 import com.mapple.forward.ForwardData;
-import com.mapple.socksproxy.SocksServerUtils;
 
 import java.util.List;
 
@@ -23,19 +22,19 @@ public class ForwardDataRemoteHandler extends ByteToMessageDecoder {
     
     @Override
     protected void decode(ChannelHandlerContext ctx, ByteBuf in, List<Object> out) throws Exception {
-        System.out.println("ForwardDataRemoteHandler1:" + ctx + " " + in.readableBytes());
         if (localChannel.isActive()) {
             while(in.readableBytes() > 0) {
-                if(in.readableBytes() < 200) {
-                localChannel.writeAndFlush(new ForwardData(addr, in.readSlice(in.readableBytes())));
+                if(in.readableBytes() < 8096) {
+                    localChannel.writeAndFlush(new ForwardData(addr, in.readSlice(in.readableBytes()).retain()));
                 }
                 else {
-                    localChannel.writeAndFlush(new ForwardData(addr, in.readSlice(200)));
+                    localChannel.writeAndFlush(new ForwardData(addr, in.readSlice(8096).retain()));
                 }
             }
+//            localChannel.writeAndFlush(new ForwardData(addr, in.readSlice(in.readableBytes()).retain()));
         }
         else {
-            SocksServerUtils.closeOnFlush(ctx.channel());
+            ForwardUtils.closeOnFlush(ctx.channel());
         }
     }
 
