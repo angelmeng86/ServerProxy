@@ -31,11 +31,11 @@ import io.netty.handler.logging.LoggingHandler;
 
 public final class SocksServer {
 
-    static final int PORT = Integer.parseInt(System.getProperty("port", "1080"));
-    static final int PORT2 = Integer.parseInt(System.getProperty("tcpforword", "1986"));
+    static final int PORT = Integer.parseInt(System.getProperty("port", "10010"));
+    static final int PORT2 = Integer.parseInt(System.getProperty("tcpforword", "10011"));
 
     public static void main(String[] args) throws Exception {
-        System.out.println("OYE!!! " + args.length);
+        System.out.println("TEST-----------------------------");
         EventLoopGroup bossGroup = new NioEventLoopGroup(1);
         EventLoopGroup workerGroup = new NioEventLoopGroup();
         
@@ -47,7 +47,7 @@ public final class SocksServer {
             b.group(bossGroup, workerGroup)
              .channel(NioServerSocketChannel.class)
              .option(ChannelOption.SO_REUSEADDR, true)
-             .handler(new LoggingHandler(LogLevel.INFO))
+//             .handler(new LoggingHandler(LogLevel.INFO))
              .childHandler(new SocksServerInitializer());
             ChannelFuture futrue = b.bind(PORT).sync().channel().closeFuture();
             
@@ -55,7 +55,7 @@ public final class SocksServer {
             forword.group(boss2Group, worker2Group)
              .channel(NioServerSocketChannel.class)
              .option(ChannelOption.SO_REUSEADDR, true)
-             .handler(new LoggingHandler(LogLevel.INFO))
+//             .handler(new LoggingHandler(LogLevel.INFO))
              .childHandler(new TcpForwardServerInitializer())
              .childOption(ChannelOption.SO_KEEPALIVE, true);
             ChannelFuture futrue2 = forword.bind(PORT2).sync().channel().closeFuture();

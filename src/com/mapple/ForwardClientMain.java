@@ -44,11 +44,15 @@ public class ForwardClientMain {
 
             while(true) {
                 // Start the client.
-                ChannelFuture f = bs.connect(ip, port).sync();
-                System.out.println("Connect " + ip + ":" + port);
-                // Wait until the connection is closed.
-                f.channel().closeFuture().sync();
-                System.out.println("Disconnect " + ip + ":" + port);
+                try {
+                    ChannelFuture f = bs.connect(ip, port).sync();
+                    System.out.println("Connect " + ip + ":" + port);
+                    // Wait until the connection is closed.
+                    f.channel().closeFuture().sync();
+                    System.out.println("Disconnect " + ip + ":" + port);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
                 Thread.sleep(5000);
                 System.out.println("Retry...");
             }
