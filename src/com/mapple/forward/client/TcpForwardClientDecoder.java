@@ -79,7 +79,9 @@ public class TcpForwardClientDecoder extends ReplayingDecoder<State> {
                 break;
             case FORCECLOSE: {
                 ForwardClientMain.running = false;
-                throw new Exception("recive force cmd");
+                System.out.println("recive force cmd");
+                ctx.close();
+                return;
             }
             default:
                 throw new DecoderException("unsupported cmd: (expected: " + String.format("0x%02x", cmd.byteValue()) + ')');

@@ -13,7 +13,9 @@ public class ForwardLogin implements ForwardMessage {
     private int remotePort;
     private String province;
     private String province2;
-	
+	private String city;
+	private String carrier;
+    
 	public ForwardLogin(String userName) {
 		this.userName = userName;
 	}
@@ -73,6 +75,22 @@ public class ForwardLogin implements ForwardMessage {
             }  
         }  
         return convert.toString();
-    }  
+    }
+
+	public String getCity() {
+		return city;
+	}
+
+	public void setCity(String city) {
+		this.city = city;
+	}
+
+	public String getCarrier() {
+		return carrier;
+	}
+
+	public void setCarrier(String carrier) {
+		this.carrier = carrier;
+	}  
 
 }

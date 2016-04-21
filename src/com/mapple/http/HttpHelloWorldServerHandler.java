@@ -15,12 +15,12 @@
  */
 package com.mapple.http;
 
-import com.mapple.forward.ForwardBeat;
 import com.mapple.forward.ForwardForceClose;
 import com.mapple.forward.ForwardLogin;
 import com.mapple.forward.server.ForwardLoginHandler;
 
 import java.util.Iterator;
+import java.util.List;
 
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
@@ -62,10 +62,10 @@ public class HttpHelloWorldServerHandler extends ChannelInboundHandlerAdapter {
             }
             
             QueryStringDecoder decoder = new QueryStringDecoder(req.uri());
-            String index = decoder.parameters().get("close").get(0);
+            List<String> close = decoder.parameters().get("close");
             int pos = -1;
-            if(index != null) {
-                pos = Integer.valueOf(index);
+            if(close != null && close.size() > 0) {
+            	pos = Integer.valueOf(close.get(0));
             }
             
             StringBuilder body = new StringBuilder();
@@ -78,18 +78,24 @@ public class HttpHelloWorldServerHandler extends ChannelInboundHandlerAdapter {
                 ForwardLogin p = ch.attr(Session).get();
                 body.append(i + 1);
                 body.append("  ");
-                body.append(p.getProvince() + "[" + p.getProvince2() + "]");
+                body.append(p.getProvince() + p.getCity() + "[" + p.getProvince2() + "]");
                 body.append("  ");
                 body.append(p.getRemoteAddr() + ":" + p.getRemotePort());
+                body.append("  ");
+                body.append(p.getCarrier());
                 if(i++ == pos) {
                     body.append("  [CLOSED]");
                     ch.writeAndFlush(new ForwardForceClose());
                 }
                 body.append("\n");
             }
+            String data = body.toString();
+            if(data.isEmpty()) {
+            	data = "木有数据哇";
+            }
             
 //            boolean keepAlive = HttpUtil.isKeepAlive(req);
-            FullHttpResponse response = new DefaultFullHttpResponse(HTTP_1_1, OK, Unpooled.wrappedBuffer(body.toString().getBytes(CharsetUtil.UTF_8)));
+            FullHttpResponse response = new DefaultFullHttpResponse(HTTP_1_1, OK, Unpooled.wrappedBuffer(data.getBytes(CharsetUtil.UTF_8)));
             response.headers().set(CONTENT_TYPE, "text/plain; charset=utf-8");
             response.headers().setInt(CONTENT_LENGTH, response.content().readableBytes());
             
