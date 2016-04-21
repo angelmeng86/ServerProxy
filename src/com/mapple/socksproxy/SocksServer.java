@@ -15,24 +15,21 @@
  */
 package com.mapple.socksproxy;
 
-import com.mapple.forward.client.TcpForwardClientInitializer;
 import com.mapple.forward.server.TcpForwardServerInitializer;
+import com.mapple.http.HttpHelloWorldServerInitializer;
 
-import io.netty.bootstrap.Bootstrap;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
-import io.netty.channel.socket.nio.NioSocketChannel;
-import io.netty.handler.logging.LogLevel;
-import io.netty.handler.logging.LoggingHandler;
 
 public final class SocksServer {
 
     static final int PORT = Integer.parseInt(System.getProperty("port", "10010"));
     static final int PORT2 = Integer.parseInt(System.getProperty("tcpforword", "10011"));
+    static final int PORT3 = Integer.parseInt(System.getProperty("http", "10012"));
 
     public static void main(String[] args) throws Exception {
         System.out.println("TEST-----------------------------");
@@ -42,11 +39,15 @@ public final class SocksServer {
         EventLoopGroup boss2Group = new NioEventLoopGroup(1);
         EventLoopGroup worker2Group = new NioEventLoopGroup();
         
+        EventLoopGroup boss3Group = new NioEventLoopGroup(1);
+        EventLoopGroup worker3Group = new NioEventLoopGroup();
+        
         try {
             ServerBootstrap b = new ServerBootstrap();
             b.group(bossGroup, workerGroup)
              .channel(NioServerSocketChannel.class)
              .option(ChannelOption.SO_REUSEADDR, true)
+             .option(ChannelOption.SO_BACKLOG, 64)
 //             .handler(new LoggingHandler(LogLevel.INFO))
              .childHandler(new SocksServerInitializer());
             ChannelFuture futrue = b.bind(PORT).sync().channel().closeFuture();
@@ -55,11 +56,23 @@ public final class SocksServer {
             forword.group(boss2Group, worker2Group)
              .channel(NioServerSocketChannel.class)
              .option(ChannelOption.SO_REUSEADDR, true)
+             .option(ChannelOption.SO_BACKLOG, 64)
 //             .handler(new LoggingHandler(LogLevel.INFO))
              .childHandler(new TcpForwardServerInitializer())
              .childOption(ChannelOption.SO_KEEPALIVE, true);
             ChannelFuture futrue2 = forword.bind(PORT2).sync().channel().closeFuture();
             
+            ServerBootstrap http = new ServerBootstrap();
+            http.option(ChannelOption.SO_BACKLOG, 32);
+            http.group(boss3Group, worker3Group)
+             .channel(NioServerSocketChannel.class)
+//             .handler(new LoggingHandler(LogLevel.INFO))
+             .childHandler(new HttpHelloWorldServerInitializer());
+
+            ChannelFuture futrue3 = http.bind(PORT3).sync().channel().closeFuture();
+
+            System.out.println("Open your web browser and navigate to " + "http://IP:" + PORT3 + '/');
+
          // Configure the client.
             /*
             EventLoopGroup group = new NioEventLoopGroup();
@@ -87,11 +100,14 @@ public final class SocksServer {
             
             futrue.sync();
             futrue2.sync();
+            futrue3.sync();
         } finally {
             bossGroup.shutdownGracefully();
-            boss2Group.shutdownGracefully();
             workerGroup.shutdownGracefully();
+            boss2Group.shutdownGracefully();
             worker2Group.shutdownGracefully();
+            boss3Group.shutdownGracefully();
+            worker3Group.shutdownGracefully();
         }
         
         

@@ -14,6 +14,8 @@ CMD:
 0x03 连接响应 SRC.ADDR(4) | SRC.PORT(2) | REP | ATYP | DST.ADDR(N) | DST.PORT(2)
 REP: 0x00 成功
 
+0x14 关闭客户端
+
 0x30 数据包 SRC.ADDR(4) | SRC.PORT(2) | LEN(2) | DATA(N)
 
 0x31 心跳包

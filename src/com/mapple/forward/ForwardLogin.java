@@ -4,14 +4,15 @@ import com.mapple.forward.ForwardCmd;
 import com.mapple.forward.ForwardMessage;
 import com.mapple.forward.ForwardVersion;
 
-import io.netty.channel.Channel;
+import net.sourceforge.pinyin4j.PinyinHelper;
 
 public class ForwardLogin implements ForwardMessage {
 
 	private final String userName;
 	private String remoteAddr;
     private int remotePort;
-    private Channel remoteChannel;
+    private String province;
+    private String province2;
 	
 	public ForwardLogin(String userName) {
 		this.userName = userName;
@@ -47,12 +48,31 @@ public class ForwardLogin implements ForwardMessage {
         this.remotePort = remotePort;
     }
 
-    public Channel getRemoteChannel() {
-        return remoteChannel;
+    public String getProvince() {
+        return province;
+    }
+    
+    public String getProvince2() {
+        return province2;
     }
 
-    public void setRemoteChannel(Channel remoteChannel) {
-        this.remoteChannel = remoteChannel;
+    public void setProvince(String province) {
+        this.province = province;
+        this.province2 = getPinYinHeadChar(province);
     }
+    
+    private static String getPinYinHeadChar(String str) {  
+        StringBuilder convert = new StringBuilder();  
+        for (int j = 0; j < str.length(); j++) {  
+            char word = str.charAt(j);  
+            String[] pinyinArray = PinyinHelper.toHanyuPinyinStringArray(word);  
+            if (pinyinArray != null) {  
+                convert.append(pinyinArray[0].charAt(0));  
+            } else {  
+                convert.append(word);  
+            }  
+        }  
+        return convert.toString();
+    }  
 
 }

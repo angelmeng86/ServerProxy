@@ -21,8 +21,10 @@ import com.mapple.forward.server.ForwardLoginHandler;
 import com.mapple.socksproxy.SocksServerUtils;
 
 import java.net.InetSocketAddress;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.Iterator;
+import java.util.Random;
 
+import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
@@ -34,17 +36,61 @@ import io.netty.handler.codec.socksx.v5.DefaultSocks5CommandResponse;
 import io.netty.handler.codec.socksx.v5.Socks5AddressType;
 import io.netty.handler.codec.socksx.v5.Socks5CommandRequest;
 import io.netty.handler.codec.socksx.v5.Socks5CommandStatus;
+import io.netty.util.AttributeKey;
+import io.netty.util.internal.ConcurrentSet;
 
 @ChannelHandler.Sharable
 public final class SocksServerConnectHandlerEx extends SimpleChannelInboundHandler<SocksMessage> {
 
     public static final SocksServerConnectHandlerEx INSTANCE = new SocksServerConnectHandlerEx();
     
+    private static final AttributeKey<ForwardLogin> Session = AttributeKey.valueOf("Session");
+    
     @Override
     public void channelRead0(final ChannelHandlerContext ctx, final SocksMessage message) throws Exception {
-        ConcurrentHashMap<String, ForwardLogin> proxyList = ForwardLoginHandler.INSTANCE.proxyList();
-        ForwardLogin proxy = proxyList.elements().nextElement();
-        if (proxy == null || !proxy.getRemoteChannel().isActive()) {
+        ConcurrentSet<Channel> proxyList = ForwardLoginHandler.INSTANCE.proxyList();
+        String id = null;
+        Channel channel = null;
+        if (message instanceof Socks4CommandRequest) {
+            final Socks4CommandRequest request = (Socks4CommandRequest) message;
+            id = request.userId();
+        } else if (message instanceof Socks5CommandRequest) {
+            AttributeKey<String> SOCKS5 = AttributeKey.valueOf("socks5");
+            id = ctx.channel().attr(SOCKS5).get();
+        }
+        if(id != null) {
+            System.out.println("id:" + id);
+            if (id.equals("Mapple") && proxyList.size() > 0) {
+                int pos = new Random().nextInt() % proxyList.size();
+                int i = 0;
+                
+                Iterator<Channel> it = proxyList.iterator();
+                while(it.hasNext()) {
+                    Channel ch = it.next();
+                    if(pos == i++) {
+                        channel = ch;
+                        break;
+                    }
+                }
+            }
+            else {
+                Iterator<Channel> it = proxyList.iterator();
+                while(it.hasNext()) {
+                    Channel ch = it.next();
+                    ForwardLogin p = ch.attr(Session).get();
+                    if (p.getProvince2() != null && id.toUpperCase().equals(p.getProvince2().toUpperCase())) {
+                        channel = ch;
+                        break;
+                    }
+                    if(id.equals(p.getRemoteAddr())) {
+                        channel = ch;
+                        break;
+                    }
+                }
+            }
+        }
+        
+        if (channel == null || !channel.isActive()) {
             if (message instanceof Socks4CommandRequest) {
                 ctx.writeAndFlush(
                         new DefaultSocks4CommandResponse(Socks4CommandStatus.REJECTED_OR_FAILED));
@@ -59,6 +105,7 @@ public final class SocksServerConnectHandlerEx extends SimpleChannelInboundHandl
             else {
                 ctx.close();
             }
+            return;
         }
         if (message instanceof Socks4CommandRequest) {
 //            System.out.println("SocksServerConnectHandlerEx Socks4CommandRequest");
@@ -66,14 +113,17 @@ public final class SocksServerConnectHandlerEx extends SimpleChannelInboundHandl
             InetSocketAddress addr = (InetSocketAddress) ctx.channel().remoteAddress();
             ForwardConnect fc = new ForwardConnect(addr.getAddress().getHostAddress(), addr.getPort(), Socks5AddressType.DOMAIN, request.dstAddr(), request.dstPort());
             fc.setSrcChannel(ctx.channel());
-            proxy.getRemoteChannel().writeAndFlush(fc);
+            ctx.channel().attr(AttributeKey.valueOf("socks4"));
+            channel.writeAndFlush(fc);
+            
+//            System.out.println("socks4:" + request.userId());
         } else if (message instanceof Socks5CommandRequest) {
 //            System.out.println("SocksServerConnectHandlerEx Socks5CommandRequest");
             final Socks5CommandRequest request = (Socks5CommandRequest) message;
             InetSocketAddress addr = (InetSocketAddress) ctx.channel().remoteAddress();
             ForwardConnect fc = new ForwardConnect(addr.getAddress().getHostAddress(), addr.getPort(), request.dstAddrType(), request.dstAddr(), request.dstPort());
             fc.setSrcChannel(ctx.channel());
-            proxy.getRemoteChannel().writeAndFlush(fc);
+            channel.writeAndFlush(fc);
         } else {
             ctx.close();
         }
@@ -81,6 +131,7 @@ public final class SocksServerConnectHandlerEx extends SimpleChannelInboundHandl
 
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
+        cause.printStackTrace();
         SocksServerUtils.closeOnFlush(ctx.channel());
     }
 }

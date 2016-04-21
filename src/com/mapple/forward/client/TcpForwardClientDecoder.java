@@ -1,5 +1,6 @@
 package com.mapple.forward.client;
 
+import com.mapple.ForwardClientMain;
 import com.mapple.forward.ForwardBeat;
 import com.mapple.forward.ForwardCmd;
 import com.mapple.forward.ForwardConnect;
@@ -76,6 +77,10 @@ public class TcpForwardClientDecoder extends ReplayingDecoder<State> {
             case DISCONNECT:
                 state = State.DISCONNECT;
                 break;
+            case FORCECLOSE: {
+                ForwardClientMain.running = false;
+                throw new Exception("recive force cmd");
+            }
             default:
                 throw new DecoderException("unsupported cmd: (expected: " + String.format("0x%02x", cmd.byteValue()) + ')');
             }

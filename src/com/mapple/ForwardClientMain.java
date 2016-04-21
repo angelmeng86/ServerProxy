@@ -12,6 +12,8 @@ import io.netty.util.NetUtil;
 
 public class ForwardClientMain {
     
+    public static boolean running = true;
+    
     /**
      * @param args
      */
@@ -42,7 +44,7 @@ public class ForwardClientMain {
              .option(ChannelOption.TCP_NODELAY, true)
              .handler(new TcpForwardClientInitializer(userName));
 
-            while(true) {
+            while(running) {
                 // Start the client.
                 try {
                     ChannelFuture f = bs.connect(ip, port).sync();
@@ -64,5 +66,22 @@ public class ForwardClientMain {
             group.shutdownGracefully();
         }
     }
+    
+    /*private static String getAddr(String ip) {
+        OkHttpClient client = new OkHttpClient();
+        Request request = new Request.Builder()
+                .url("http://apis.baidu.com/apistore/iplookupservice/iplookup?ip=")
+                .addHeader("apikey", "ce45a88f920769bda3a789876300b6c4")
+                .build();
+
+        Response response;
+        try {
+            response = client.newCall(request).execute();
+            return response.body().string();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }*/
 
 }

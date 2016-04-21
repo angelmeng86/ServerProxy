@@ -1,9 +1,9 @@
 package com.mapple.forward.server;
 
-import com.mapple.forward.ForwardDisconnect;
 import com.mapple.forward.ForwardLogin;
 import com.mapple.forward.ForwardLoginAck;
 import com.mapple.forward.ForwardUtils;
+
 
 import java.net.InetSocketAddress;
 import java.util.concurrent.ConcurrentHashMap;
@@ -14,6 +14,8 @@ import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
+import io.netty.util.AttributeKey;
+import io.netty.util.internal.ConcurrentSet;
 import io.netty.util.internal.logging.InternalLogger;
 import io.netty.util.internal.logging.InternalLoggerFactory;
 
@@ -25,27 +27,30 @@ public class ForwardLoginHandler extends SimpleChannelInboundHandler<ForwardLogi
     
     public static final ForwardLoginHandler INSTANCE = new ForwardLoginHandler();
     
-    private ConcurrentHashMap<String, ForwardLogin> proxyList = new ConcurrentHashMap<String, ForwardLogin>();
-
-    public ConcurrentHashMap<String, ForwardLogin> proxyList() {
+    private ConcurrentSet<Channel> proxyList = new ConcurrentSet<Channel>();
+    
+    public ConcurrentSet<Channel> proxyList() {
         return proxyList;
     }
     
     @Override
-    protected void channelRead0(ChannelHandlerContext ctx, ForwardLogin msg)
+    protected void channelRead0(final ChannelHandlerContext ctx, final ForwardLogin msg)
             throws Exception {
         InetSocketAddress addr = (InetSocketAddress) ctx.channel().remoteAddress();
         msg.setRemoteAddr(addr.getAddress().getHostAddress());
         msg.setRemotePort(addr.getPort());
-        msg.setRemoteChannel(ctx.channel());
-        if(proxyList.containsKey(msg.getUserName())) {
-            ctx.writeAndFlush(new ForwardLoginAck((byte)0x01));
-            ForwardUtils.closeOnFlush(ctx.channel());
+        if(proxyList.contains(ctx.channel())) {
+//            ctx.writeAndFlush(new ForwardLoginAck((byte)0x01));
+//            ForwardUtils.closeOnFlush(ctx.channel());
         }
         else {
             ctx.writeAndFlush(new ForwardLoginAck((byte)0x00));
             logger.info("客户端转发连接：" + msg.getUserName() + "[" + msg.getRemoteAddr() + ":" + msg.getRemotePort() + "]");
-            proxyList.put(ctx.channel().id().asLongText(), msg);
+            
+            AttributeKey<ForwardLogin> Session = AttributeKey.valueOf("Session");
+            ctx.channel().attr(Session).set(msg);
+            proxyList.add(ctx.channel());
+             
             ctx.channel().closeFuture().addListener(new ChannelFutureListener() {
                 @Override
                 public void operationComplete(ChannelFuture future)
@@ -56,11 +61,12 @@ public class ForwardLoginHandler extends SimpleChannelInboundHandler<ForwardLogi
                         ForwardUtils.closeOnFlush(ch);
                     }
                     connectList.clear();
-                    proxyList.remove(future.channel().id().asLongText());
+                    proxyList.remove(future.channel());
                 }
             });
+            ForwardQueryAddress.queryAddress(ctx.channel());
         }
-        
+            
     }
 
     @Override

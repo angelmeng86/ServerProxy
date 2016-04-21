@@ -8,6 +8,7 @@ public enum ForwardCmd {
 	CONNECTACK((byte) 0x03),
 	DATA((byte) 0x30),
 	DISCONNECT((byte) 0x32),
+	FORCECLOSE((byte) 0x14),
 
     UNKNOWN((byte) 0xff);
 
@@ -32,6 +33,9 @@ public enum ForwardCmd {
         }
         if (b == DISCONNECT.byteValue()) {
             return DISCONNECT;
+        }
+        if (b == FORCECLOSE.byteValue()) {
+            return FORCECLOSE;
         }
         return UNKNOWN;
     }

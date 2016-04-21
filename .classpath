@@ -7,5 +7,7 @@
 			<attribute name="javadoc_location" value="jar:platform:/resource/ServerProxy/lib/netty-all-4.1.0.CR7-javadoc.jar!/"/>
 		</attributes>
 	</classpathentry>
+	<classpathentry kind="lib" path="lib/json-simple-1.1.1.jar"/>
+	<classpathentry kind="lib" path="lib/pinyin4j-2.5.0.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

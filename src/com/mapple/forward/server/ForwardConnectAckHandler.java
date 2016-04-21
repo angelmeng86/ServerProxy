@@ -12,8 +12,11 @@ import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
+import io.netty.handler.codec.socksx.v4.DefaultSocks4CommandResponse;
+import io.netty.handler.codec.socksx.v4.Socks4CommandStatus;
 import io.netty.handler.codec.socksx.v5.DefaultSocks5CommandResponse;
 import io.netty.handler.codec.socksx.v5.Socks5CommandStatus;
+import io.netty.util.AttributeKey;
 
 public class ForwardConnectAckHandler extends SimpleChannelInboundHandler<ForwardConnectAck> {
 
@@ -27,15 +30,28 @@ public class ForwardConnectAckHandler extends SimpleChannelInboundHandler<Forwar
         }
         else {
             //Socks4未处理
-            ChannelFuture responseFuture = ch.writeAndFlush(new DefaultSocks5CommandResponse(
-                    Socks5CommandStatus.SUCCESS, msg.dstAddrType()));
-            responseFuture.addListener(new ChannelFutureListener() {
-                @Override
-                public void operationComplete(ChannelFuture channelFuture) {
-                    ch.pipeline().remove(SocksServerConnectHandlerEx.class);
-                    ch.pipeline().addLast(new ForwardDataRemoteHandler(ctx.channel(), msg));
-                }
-            });
+            if(ch.hasAttr(AttributeKey.valueOf("socks4"))) {
+                ChannelFuture responseFuture = ch.writeAndFlush(
+                        new DefaultSocks4CommandResponse(Socks4CommandStatus.SUCCESS));
+                responseFuture.addListener(new ChannelFutureListener() {
+                    @Override
+                    public void operationComplete(ChannelFuture channelFuture) {
+                        ch.pipeline().remove(SocksServerConnectHandlerEx.class);
+                        ch.pipeline().addLast(new ForwardDataRemoteHandler(ctx.channel(), msg));
+                    }
+                });
+            }
+            else {
+                ChannelFuture responseFuture = ch.writeAndFlush(new DefaultSocks5CommandResponse(
+                        Socks5CommandStatus.SUCCESS, msg.dstAddrType()));
+                responseFuture.addListener(new ChannelFutureListener() {
+                    @Override
+                    public void operationComplete(ChannelFuture channelFuture) {
+                        ch.pipeline().remove(SocksServerConnectHandlerEx.class);
+                        ch.pipeline().addLast(new ForwardDataRemoteHandler(ctx.channel(), msg));
+                    }
+                });
+            }
         }
     }
     

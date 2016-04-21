@@ -1,7 +1,6 @@
 package com.mapple.forward.server;
 
 import com.mapple.forward.ForwardBeatEncoder;
-import com.mapple.forward.ForwardBeatHandler;
 import com.mapple.forward.ForwardDataEncoder;
 import com.mapple.forward.ForwardDisconnectEncoder;
 
@@ -17,7 +16,8 @@ public class TcpForwardServerInitializer extends ChannelInitializer<SocketChanne
 		        new ForwardLoginAckEncoder(),
 		        new ForwardBeatEncoder(),
 		        new ForwardDataEncoder(),
-		        new ForwardDisconnectEncoder());
+		        new ForwardDisconnectEncoder(),
+		        new ForwardForceCloseEncoder());
 		
 		ch.pipeline().addLast("connectEncoder", new ForwardConnectEncoder());
 		ch.pipeline().addLast("idleStateHandler", new IdleStateHandler(60, 30, 0));
