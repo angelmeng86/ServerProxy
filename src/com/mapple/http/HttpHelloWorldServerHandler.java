@@ -78,7 +78,7 @@ public class HttpHelloWorldServerHandler extends ChannelInboundHandlerAdapter {
                 ForwardLogin p = ch.attr(Session).get();
                 body.append(i + 1);
                 body.append("  ");
-                body.append(p.getProvince() + p.getCity() + "[" + p.getProvince2() + "]");
+                body.append(p.getProvince() + p.getCity() == null? "" : p.getCity() + "[" + p.getProvince2() + "]");
                 body.append("  ");
                 body.append(p.getRemoteAddr() + ":" + p.getRemotePort());
                 body.append("  ");
