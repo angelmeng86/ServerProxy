@@ -44,8 +44,6 @@ public class TcpForwardServerDecoder extends ReplayingDecoder<State> {
 		case START: {
 			final byte version = in.readByte();
 			if (version != ForwardVersion.FORWARD1.byteValue()) {
-			    int len = actualReadableBytes();
-			    System.out.println("123 OYE:" + len);
 				throw new DecoderException("unsupported version: "
 						+ version + " (expected: "
 						+ ForwardVersion.FORWARD1.byteValue() + ')');
