@@ -1,5 +1,7 @@
 package com.mapple;
 
+import java.util.concurrent.ThreadFactory;
+
 import com.mapple.forward.client.TcpForwardClientInitializer;
 
 import io.netty.bootstrap.Bootstrap;
@@ -8,7 +10,9 @@ import io.netty.channel.ChannelOption;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioSocketChannel;
+import io.netty.channel.udt.nio.NioUdtProvider;
 import io.netty.util.NetUtil;
+import io.netty.util.concurrent.DefaultThreadFactory;
 
 public class ForwardClientMain {
     
@@ -35,7 +39,11 @@ public class ForwardClientMain {
             throw new IllegalArgumentException("port: " + port + " (expected: 1~65535)");
         }
         
-     // Configure the client.
+        udtClient(ip, port, userName);
+    }
+    
+    private static void tcpClient(String ip, int port, String userName) {
+    	 // Configure the client.
         EventLoopGroup group = new NioEventLoopGroup();
         try {
             Bootstrap bs = new Bootstrap();
@@ -48,10 +56,10 @@ public class ForwardClientMain {
                 // Start the client.
                 try {
                     ChannelFuture f = bs.connect(ip, port).sync();
-                    System.out.println("Connect " + ip + ":" + port);
+                    System.out.println("Tcp Connect " + ip + ":" + port);
                     // Wait until the connection is closed.
                     f.channel().closeFuture().sync();
-                    System.out.println("Disconnect " + ip + ":" + port);
+                    System.out.println("Tcp Disconnect " + ip + ":" + port);
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
@@ -66,6 +74,40 @@ public class ForwardClientMain {
             group.shutdownGracefully();
         }
     }
+    
+    private static void udtClient(String ip, int port, String userName) {
+   	 // Configure the client.
+       ThreadFactory connectFactory = new DefaultThreadFactory("connect");
+       EventLoopGroup group = new NioEventLoopGroup(1,
+               connectFactory, NioUdtProvider.BYTE_PROVIDER);
+       try {
+           Bootstrap bs = new Bootstrap();
+           bs.group(group)
+            .channelFactory(NioUdtProvider.BYTE_CONNECTOR)
+            .handler(new TcpForwardClientInitializer(userName));
+
+           while(running) {
+               // Start the client.
+               try {
+                   ChannelFuture f = bs.connect(ip, port).sync();
+                   System.out.println("Udt Connect " + ip + ":" + port);
+                   // Wait until the connection is closed.
+                   f.channel().closeFuture().sync();
+                   System.out.println("Udt Disconnect " + ip + ":" + port);
+               } catch (Exception e) {
+                   e.printStackTrace();
+               }
+               Thread.sleep(5000);
+               System.out.println("Retry...");
+           }
+       } catch(Exception e) {
+           e.printStackTrace();
+       }
+       finally {
+           // Shut down the event loop to terminate all threads.
+           group.shutdownGracefully();
+       }
+   }
     
     /*private static String getAddr(String ip) {
         OkHttpClient client = new OkHttpClient();

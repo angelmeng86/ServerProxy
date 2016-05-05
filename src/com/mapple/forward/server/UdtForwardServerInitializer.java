@@ -4,14 +4,14 @@ import com.mapple.forward.ForwardBeatEncoder;
 import com.mapple.forward.ForwardDataEncoder;
 import com.mapple.forward.ForwardDisconnectEncoder;
 
-import io.netty.channel.Channel;
 import io.netty.channel.ChannelInitializer;
+import io.netty.channel.udt.UdtChannel;
 import io.netty.handler.timeout.IdleStateHandler;
 
-public class TcpForwardServerInitializer extends ChannelInitializer<Channel> {
+public class UdtForwardServerInitializer extends ChannelInitializer<UdtChannel> {
 
 	@Override
-	protected void initChannel(Channel ch) throws Exception {
+	protected void initChannel(UdtChannel ch) throws Exception {
 		ch.pipeline().addLast(
 		        new ForwardLoginAckEncoder(),
 		        new ForwardBeatEncoder(),
@@ -29,7 +29,9 @@ public class TcpForwardServerInitializer extends ChannelInitializer<Channel> {
                 ForwardLoginHandler.INSTANCE,
                 new ForwardServerDataHandler(),
                 new ForwardConnectAckHandler(),
-                new ForwardServerDisconnectHandler());
+                new ForwardServerDisconnectHandler());		
 	}
+
+	
 
 }

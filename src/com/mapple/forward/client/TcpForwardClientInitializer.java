@@ -4,10 +4,10 @@ import com.mapple.forward.ForwardBeatEncoder;
 import com.mapple.forward.ForwardDataEncoder;
 import com.mapple.forward.ForwardDisconnectEncoder;
 
+import io.netty.channel.Channel;
 import io.netty.channel.ChannelInitializer;
-import io.netty.channel.socket.SocketChannel;
 
-public class TcpForwardClientInitializer extends ChannelInitializer<SocketChannel> {
+public class TcpForwardClientInitializer extends ChannelInitializer<Channel> {
 
     private final String userName;
     
@@ -16,7 +16,7 @@ public class TcpForwardClientInitializer extends ChannelInitializer<SocketChanne
     }
     
     @Override
-    protected void initChannel(SocketChannel ch) throws Exception {
+    protected void initChannel(Channel ch) throws Exception {
     	ch.pipeline().addLast(
     			new ForwardLoginEncoder(),
                 new ForwardBeatEncoder(),
