@@ -59,7 +59,7 @@ public final class SocksServerConnectHandlerEx extends SimpleChannelInboundHandl
             id = ctx.channel().attr(SOCKS5).get();
         }
         if(id != null) {
-//            System.out.println("id:" + id);
+            System.out.println("id:" + id + " size:" + proxyList.size());
             if (id.equals("Mapple") && proxyList.size() > 0) {
                 int pos = new Random().nextInt() % proxyList.size();
                 int i = 0;
@@ -116,9 +116,9 @@ public final class SocksServerConnectHandlerEx extends SimpleChannelInboundHandl
             ctx.channel().attr(AttributeKey.valueOf("socks4"));
             channel.writeAndFlush(fc);
             
-//            System.out.println("socks4:" + request.userId());
+            System.out.println("socks4:" + request.userId());
         } else if (message instanceof Socks5CommandRequest) {
-//            System.out.println("SocksServerConnectHandlerEx Socks5CommandRequest");
+            System.out.println("SocksServerConnectHandlerEx Socks5CommandRequest");
             final Socks5CommandRequest request = (Socks5CommandRequest) message;
             InetSocketAddress addr = (InetSocketAddress) ctx.channel().remoteAddress();
             ForwardConnect fc = new ForwardConnect(addr.getAddress().getHostAddress(), addr.getPort(), request.dstAddrType(), request.dstAddr(), request.dstPort());

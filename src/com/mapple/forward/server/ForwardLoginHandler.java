@@ -64,7 +64,9 @@ public class ForwardLoginHandler extends SimpleChannelInboundHandler<ForwardLogi
                     proxyList.remove(future.channel());
                 }
             });
-            ForwardQueryAddress.queryAddress(ctx.channel());
+            if(!ForwardQueryAddress.hasAddress(ctx.channel())) {
+                ForwardQueryAddress.queryAddress(ctx.channel());
+            }
         }
             
     }

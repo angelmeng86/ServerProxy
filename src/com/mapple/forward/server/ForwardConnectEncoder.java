@@ -34,21 +34,21 @@ public class ForwardConnectEncoder extends MessageToByteEncoder<ForwardConnect> 
         out.writeByte(msg.dstAddrType().byteValue());
         addressEncoder.encodeAddress(msg.dstAddrType(), msg.dstAddr(), out);
         out.writeShort(msg.dstPort());
-//        System.out.println("服务端总连接数：" + connectList.size());
+        System.out.println("服务端总连接数：" + connectList.size());
         connectList.put(msg.getId(), msg.getSrcChannel());
         msg.getSrcChannel().closeFuture()
         .addListener(new ChannelFutureListener() {
             @Override
             public void operationComplete(ChannelFuture future)
                     throws Exception {
-//                System.out.println("服务端连接断开：" + msg.getId());
+                System.out.println("服务端连接断开：" + msg.getId());
                 if(ctx.channel().isActive()) {
                     ctx.writeAndFlush(new ForwardDisconnect(msg));
                 }
                 if(connectList.containsKey(msg.getId())) {
                     connectList.remove(msg.getId());
                 }
-//                System.out.println("服务端剩余连接数：" + connectList.size());
+                System.out.println("服务端剩余连接数：" + connectList.size());
             }
         });
     }

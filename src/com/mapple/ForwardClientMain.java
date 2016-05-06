@@ -22,8 +22,8 @@ public class ForwardClientMain {
      * @param args
      */
     public static void main(String[] args) {
-        if(args.length != 3) {
-            System.out.println("useage: java -jar forwardclient.jar [USERNAME] [IP] [PORT]");
+        if(args.length < 3 || args.length > 4) {
+            System.out.println("useage: java -jar forwardclient.jar [USERNAME] [IP] [PORT] [UDT]");
             return;
         }
         
@@ -39,7 +39,12 @@ public class ForwardClientMain {
             throw new IllegalArgumentException("port: " + port + " (expected: 1~65535)");
         }
         
-        udtClient(ip, port, userName);
+        if(args.length == 4) {
+            udtClient(ip, port, userName);
+        }
+        else {
+            tcpClient(ip, port, userName);
+        }
     }
     
     private static void tcpClient(String ip, int port, String userName) {
@@ -77,10 +82,12 @@ public class ForwardClientMain {
     
     private static void udtClient(String ip, int port, String userName) {
    	 // Configure the client.
+        
        ThreadFactory connectFactory = new DefaultThreadFactory("connect");
        EventLoopGroup group = new NioEventLoopGroup(1,
                connectFactory, NioUdtProvider.BYTE_PROVIDER);
        try {
+           
            Bootstrap bs = new Bootstrap();
            bs.group(group)
             .channelFactory(NioUdtProvider.BYTE_CONNECTOR)

@@ -6,6 +6,8 @@ import com.mapple.forward.ForwardDisconnectEncoder;
 
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelInitializer;
+import io.netty.handler.logging.LogLevel;
+import io.netty.handler.logging.LoggingHandler;
 
 public class TcpForwardClientInitializer extends ChannelInitializer<Channel> {
 
@@ -25,7 +27,7 @@ public class TcpForwardClientInitializer extends ChannelInitializer<Channel> {
                 new ForwardDisconnectEncoder());
     	
         ch.pipeline().addLast(
-//                new LoggingHandler(LogLevel.DEBUG),
+                new LoggingHandler(LogLevel.DEBUG),
                 new TcpForwardClientDecoder(userName), 
                 ForwardConnectHandler.INSTANCE,
                 new ForwardClientDataHandler(),

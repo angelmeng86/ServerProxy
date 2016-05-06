@@ -91,7 +91,7 @@ public class TcpForwardClientDecoder extends ReplayingDecoder<State> {
             if(rsv != 0x00) {
                 throw new DecoderException("unsupported rsv: (expected: " + rsv + ')');
             }
-//            System.out.println("客户端CMD " + String.format("0x%02x", cmd.byteValue()));
+            System.out.println("客户端CMD " + String.format("0x%02x", cmd.byteValue()));
             checkpoint(state);
         }
         	break;
@@ -119,7 +119,7 @@ public class TcpForwardClientDecoder extends ReplayingDecoder<State> {
             final int port = in.readUnsignedShort();
             
             final int len = in.readShort();
-//            System.out.println("客户端DATA len:" + len);
+            System.out.println("客户端DATA len:" + len);
             if(len > 0) {
                 if (in.readableBytes() < len) {
                     break;

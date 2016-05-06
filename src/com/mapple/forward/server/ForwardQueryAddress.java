@@ -42,7 +42,7 @@ public class ForwardQueryAddress {
     public static boolean hasAddress(Channel ch) {
         ForwardLogin msg = ch.attr(Session).get();
         if(msg.getProvince() == null || msg.getProvince().isEmpty()) {
-            return false;
+//            return false;
         }
         return true;
     }

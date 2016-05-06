@@ -25,7 +25,7 @@ public class ForwardServerMain {
     static final int PORT3 = Integer.parseInt(System.getProperty("http", "10012"));
 
     public static void main(String[] args) throws Exception {
-        System.out.println("SERVER TEST-----------------------------");
+        System.out.println("1SERVER TEST-----------------------------");
         EventLoopGroup bossGroup = new NioEventLoopGroup(1);
         EventLoopGroup workerGroup = new NioEventLoopGroup();
         
@@ -75,7 +75,7 @@ public class ForwardServerMain {
             boot4.group(acceptGroup, connectGroup)
                     .channelFactory(NioUdtProvider.BYTE_ACCEPTOR)
                     .option(ChannelOption.SO_BACKLOG, 32)
-                    .handler(new LoggingHandler(LogLevel.INFO))
+                    .handler(new LoggingHandler(LogLevel.DEBUG))
                     .childHandler(new TcpForwardServerInitializer());
             // Start the server.
             ChannelFuture future4 = boot4.bind(PORT4).sync().channel().closeFuture();

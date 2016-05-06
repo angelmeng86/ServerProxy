@@ -59,7 +59,7 @@ public class ForwardConnectHandler extends SimpleChannelInboundHandler<ForwardCo
                             responseFuture.addListener(new ChannelFutureListener() {
                                 @Override
                                 public void operationComplete(ChannelFuture channelFuture) {
-//                                    System.out.println("客户端总连接数：" + connectList.size());
+                                    System.out.println("客户端总连接数：" + connectList.size());
                                     outboundChannel.pipeline().addLast(new ForwardDataRemoteHandler(ctx.channel(), msg));
                                     connectList.put(msg.getId(), outboundChannel);
                                     outboundChannel.closeFuture()
@@ -67,14 +67,14 @@ public class ForwardConnectHandler extends SimpleChannelInboundHandler<ForwardCo
                                                 @Override
                                                 public void operationComplete(ChannelFuture future)
                                                         throws Exception {
-//                                                    System.out.println("客户端连接断开：" + msg.getId());
+                                                    System.out.println("客户端连接断开：" + msg.getId());
                                                     if(ctx.channel().isActive()) {
                                                         ctx.channel().writeAndFlush(new ForwardDisconnect(msg));
                                                     }
                                                     if(connectList.containsKey(msg.getId())) {
                                                         connectList.remove(msg.getId());
                                                     }
-//                                                    System.out.println("客户端剩余连接数：" + connectList.size());
+                                                    System.out.println("客户端剩余连接数：" + connectList.size());
                                                 }
                                             });
                                 }
