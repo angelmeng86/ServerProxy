@@ -16,7 +16,9 @@ import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelOption;
+import io.netty.channel.EventLoopGroup;
 import io.netty.channel.SimpleChannelInboundHandler;
+import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.util.concurrent.Future;
 import io.netty.util.concurrent.FutureListener;
@@ -29,10 +31,19 @@ public class ForwardConnectHandler extends SimpleChannelInboundHandler<ForwardCo
     
     private ConcurrentHashMap<String, Channel> connectList = new ConcurrentHashMap<String, Channel>();
     
-    private Bootstrap b = null;
+    private Bootstrap b = new Bootstrap();
+    private EventLoopGroup group = new NioEventLoopGroup();
     
     public ConcurrentHashMap<String, Channel> connectList() {
         return connectList;
+    }
+    
+    public ForwardConnectHandler() {
+    	b.group(group)
+        .channel(NioSocketChannel.class)
+        .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 10000)
+        .option(ChannelOption.SO_KEEPALIVE, true)
+        .option(ChannelOption.SO_REUSEADDR, true);
     }
     
     @Override
@@ -59,7 +70,7 @@ public class ForwardConnectHandler extends SimpleChannelInboundHandler<ForwardCo
                             responseFuture.addListener(new ChannelFutureListener() {
                                 @Override
                                 public void operationComplete(ChannelFuture channelFuture) {
-                                    System.out.println("客户端总连接数：" + connectList.size());
+//                                    System.out.println("客户端总连接数：" + connectList.size());
                                     outboundChannel.pipeline().addLast(new ForwardDataRemoteHandler(ctx.channel(), msg));
                                     connectList.put(msg.getId(), outboundChannel);
                                     outboundChannel.closeFuture()
@@ -67,14 +78,14 @@ public class ForwardConnectHandler extends SimpleChannelInboundHandler<ForwardCo
                                                 @Override
                                                 public void operationComplete(ChannelFuture future)
                                                         throws Exception {
-                                                    System.out.println("客户端连接断开：" + msg.getId());
+//                                                    System.out.println("客户端连接断开：" + msg.getId());
                                                     if(ctx.channel().isActive()) {
                                                         ctx.channel().writeAndFlush(new ForwardDisconnect(msg));
                                                     }
                                                     if(connectList.containsKey(msg.getId())) {
                                                         connectList.remove(msg.getId());
                                                     }
-                                                    System.out.println("客户端剩余连接数：" + connectList.size());
+//                                                    System.out.println("客户端剩余连接数：" + connectList.size());
                                                 }
                                             });
                                 }
@@ -84,14 +95,6 @@ public class ForwardConnectHandler extends SimpleChannelInboundHandler<ForwardCo
                         }
                     }
                 });
-        if(b == null) {
-            b = new Bootstrap();
-            b.group(ctx.channel().eventLoop())
-                    .channel(NioSocketChannel.class)
-                    .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 10000)
-                    .option(ChannelOption.SO_KEEPALIVE, true)
-                    .option(ChannelOption.SO_REUSEADDR, true);
-        }
         b.handler(new DirectClientHandler(promise));
         b.connect(msg.dstAddr(), msg.dstPort()).addListener(new ChannelFutureListener() {
             @Override

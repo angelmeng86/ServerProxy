@@ -23,7 +23,7 @@ public class ForwardClientMain {
      */
     public static void main(String[] args) {
         if(args.length < 3 || args.length > 4) {
-            System.out.println("useage: java -jar forwardclient.jar [USERNAME] [IP] [PORT] [UDT]");
+            System.out.println("useage: java -jar forwardclient.jar [USERNAME] [IP] [PORT] <UDT>");
             return;
         }
         

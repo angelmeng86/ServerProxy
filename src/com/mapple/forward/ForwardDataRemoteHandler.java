@@ -24,7 +24,6 @@ public class ForwardDataRemoteHandler extends ByteToMessageDecoder {
     protected void decode(ChannelHandlerContext ctx, ByteBuf in, List<Object> out) throws Exception {
         if (localChannel.isActive()) {
             while(in.readableBytes() > 0) {
-                System.out.print("client readlen:" + in.readableBytes());
                 if(in.readableBytes() < 8096) {
                     localChannel.writeAndFlush(new ForwardData(addr, in.readSlice(in.readableBytes()).retain()));
                 }

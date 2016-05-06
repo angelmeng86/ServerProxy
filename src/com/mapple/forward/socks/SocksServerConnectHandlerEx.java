@@ -59,7 +59,8 @@ public final class SocksServerConnectHandlerEx extends SimpleChannelInboundHandl
             id = ctx.channel().attr(SOCKS5).get();
         }
         if(id != null) {
-            System.out.println("id:" + id + " size:" + proxyList.size());
+//            System.out.println("id:" + id + " size:" + proxyList.size());
+//            id = "Mapple";
             if (id.equals("Mapple") && proxyList.size() > 0) {
                 int pos = new Random().nextInt() % proxyList.size();
                 int i = 0;

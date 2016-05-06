@@ -19,6 +19,8 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
+import io.netty.channel.EventLoopGroup;
+import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.codec.http.DefaultFullHttpRequest;
@@ -39,10 +41,12 @@ public class ForwardQueryAddress {
     
     private static final AttributeKey<ForwardLogin> Session = AttributeKey.valueOf("Session");
     
+    private static final EventLoopGroup group = new NioEventLoopGroup();
+    
     public static boolean hasAddress(Channel ch) {
         ForwardLogin msg = ch.attr(Session).get();
         if(msg.getProvince() == null || msg.getProvince().isEmpty()) {
-//            return false;
+            return false;
         }
         return true;
     }
@@ -52,7 +56,7 @@ public class ForwardQueryAddress {
         final ForwardLogin msg = ch.attr(Session).get();
         
         Bootstrap b = new Bootstrap();
-            b.group(ch.eventLoop())
+            b.group(group)
                     .channel(NioSocketChannel.class)
                     .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 10000)
                     .option(ChannelOption.SO_REUSEADDR, true);
@@ -127,7 +131,7 @@ public class ForwardQueryAddress {
         final ForwardLogin msg = ch.attr(Session).get();
         
         Bootstrap b = new Bootstrap();
-            b.group(ch.eventLoop())
+            b.group(group)
                     .channel(NioSocketChannel.class)
                     .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 10000)
                     .option(ChannelOption.SO_REUSEADDR, true);

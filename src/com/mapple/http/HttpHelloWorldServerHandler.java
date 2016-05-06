@@ -27,6 +27,7 @@ import io.netty.channel.Channel;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
+import io.netty.channel.socket.SocketChannel;
 import io.netty.handler.codec.http.DefaultFullHttpResponse;
 import io.netty.handler.codec.http.FullHttpResponse;
 import io.netty.handler.codec.http.HttpUtil;
@@ -85,6 +86,13 @@ public class HttpHelloWorldServerHandler extends ChannelInboundHandlerAdapter {
                 body.append(p.getRemoteAddr() + ":" + p.getRemotePort());
                 body.append("  ");
                 body.append(p.getCarrier());
+                body.append("  ");
+                if(ch instanceof SocketChannel) {
+                    body.append("TCP");
+                }
+                else {
+                    body.append("UDT");
+                }
                 if(i++ == pos) {
                     body.append("  [CLOSED]");
                     ch.writeAndFlush(new ForwardForceClose());

@@ -9,8 +9,6 @@ import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.channel.udt.nio.NioUdtProvider;
-import io.netty.handler.logging.LogLevel;
-import io.netty.handler.logging.LoggingHandler;
 import io.netty.util.concurrent.DefaultThreadFactory;
 
 import com.mapple.forward.server.TcpForwardServerInitializer;
@@ -23,9 +21,11 @@ public class ForwardServerMain {
     static final int PORT2 = Integer.parseInt(System.getProperty("tcpforword", "10011"));
     static final int PORT4 = Integer.parseInt(System.getProperty("udpforword", "10013"));
     static final int PORT3 = Integer.parseInt(System.getProperty("http", "10012"));
+    
+    private static final String version = "V0.5";
 
     public static void main(String[] args) throws Exception {
-        System.out.println("1SERVER TEST-----------------------------");
+        System.out.println(version + " SERVER TEST-----------------------------");
         EventLoopGroup bossGroup = new NioEventLoopGroup(1);
         EventLoopGroup workerGroup = new NioEventLoopGroup();
         
@@ -75,7 +75,7 @@ public class ForwardServerMain {
             boot4.group(acceptGroup, connectGroup)
                     .channelFactory(NioUdtProvider.BYTE_ACCEPTOR)
                     .option(ChannelOption.SO_BACKLOG, 32)
-                    .handler(new LoggingHandler(LogLevel.DEBUG))
+//                    .handler(new LoggingHandler(LogLevel.DEBUG))
                     .childHandler(new TcpForwardServerInitializer());
             // Start the server.
             ChannelFuture future4 = boot4.bind(PORT4).sync().channel().closeFuture();
